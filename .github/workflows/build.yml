@@ -25,6 +25,14 @@ jobs:
       - name: Build Firmware
         run: platformio run
 
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          files: path_to_your_file/ESP8266-LED-OTA.bin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
       - name: Upload Firmware as Artifact
         uses: actions/upload-artifact@v4
         with:
