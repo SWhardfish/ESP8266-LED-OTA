@@ -17,12 +17,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install PlatformIO
-        run: |
-          pip install platformio
+        run: pip install platformio
+
+      - name: Install Dependencies
+        run: platformio lib install
 
       - name: Build Firmware
-        run: |
-          platformio run
+        run: platformio run
 
       - name: Upload Firmware as Artifact
         uses: actions/upload-artifact@v4
