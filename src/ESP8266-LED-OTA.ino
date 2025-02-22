@@ -8,13 +8,16 @@
 #include <NTPClient.h>
 #include <ArduinoOTA.h>
 #include <WiFiClientSecure.h>
+#include <WiFiClientSecureBearSSL.h>
+
 
 #define LED_PIN D6         // The ESP8266 pin connected to LED
 #define SWITCH_PIN D5      // The ESP8266 pin connected to the momentary switch
 #define STATUS_LED D4      // Status LED for WiFi connection feedback
 
-const String current_version = "v1.0.4";  // Set this to the current version of your firmware
-const char *firmware_url = "https://github.com/SWhardfish/ESP8266-LED-OTA/releases/latest/download/ESP8266-LED-OTA.bin"; // URL to firmware binary
+const String current_version = "1.0.3";  // Set this to the current version of your firmware
+const String api_url = "https://api.github.com/repos/SWhardfish/ESP8266-LED-OTA/releases/latest"; // GitHub API for latest release
+const char *firmware_url = "https://github.com/SWhardfish/ESP8266-LED-OTA/releases/latest/download/firmware.bin"; // URL to firmware binary
 
 String ssid = "";
 String password = "";
@@ -118,24 +121,32 @@ void startOTA() {
 void checkForUpdates() {
     Serial.println("Checking for firmware updates...");
 
-    WiFiClientSecure client;
+    std::unique_ptr<BearSSL::WiFiClientSecure> client(new BearSSL::WiFiClientSecure);
     HTTPClient http;
 
-    Serial.print("Connecting to: ");
-    Serial.println(firmware_url);
-
-    client.setInsecure();  // This bypasses SSL certificate validation
-
-    http.begin(client, firmware_url);
-    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);  // Enable following redirects
+    client->setInsecure();  // Bypass SSL certificate verification
+    http.begin(*client, api_url);
+    http.setTimeout(20000);  // 20-second timeout
+    http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);  // Ensure redirect handling
 
     int httpCode = http.GET();
     Serial.print("HTTP Response Code: ");
     Serial.println(httpCode);
 
     if (httpCode == HTTP_CODE_OK) {
-        String latest_version = http.getString();
-        latest_version.trim(); // Clean up response
+        // Parse JSON response
+        String payload = http.getString();
+        DynamicJsonDocument doc(2048);
+        DeserializationError error = deserializeJson(doc, payload);
+
+        if (error) {
+            Serial.println("Failed to parse JSON");
+            return;
+        }
+
+        // Extract latest version and firmware URL
+        String latest_version = doc["tag_name"].as<String>();
+        String firmware_url = doc["assets"][0]["browser_download_url"].as<String>();
 
         Serial.print("Latest version: ");
         Serial.println(latest_version);
@@ -144,41 +155,64 @@ void checkForUpdates() {
 
         if (latest_version != current_version) {
             Serial.println("New version available! Updating...");
-            t_httpUpdate_return result = ESPhttpUpdate.update(client, firmware_url);
+            Serial.print("Firmware URL: ");
+            Serial.println(firmware_url);
 
-            switch (result) {
-                case HTTP_UPDATE_FAILED:
-                    Serial.printf("Update failed! Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
-                    break;
-                case HTTP_UPDATE_NO_UPDATES:
-                    Serial.println("No new update available.");
-                    break;
-                case HTTP_UPDATE_OK:
-                    Serial.println("Update successful! Rebooting...");
-                    delay(1000);
-                    ESP.restart();
-                    break;
+            // Manually download firmware
+            http.end();
+            http.begin(*client, firmware_url);
+            http.setTimeout(20000);  // Set timeout for firmware download
+
+            int firmwareHttpCode = http.GET();
+            if (firmwareHttpCode == HTTP_CODE_OK) {
+                WiFiClient& stream = http.getStream();  // Corrected type
+                size_t contentLength = http.getSize();
+                if (contentLength > 0) {
+                    Serial.printf("Firmware size: %d bytes\n", contentLength);
+
+                    // Start OTA update
+                    if (Update.begin(contentLength)) {
+                        Serial.println("Starting OTA update...");
+                        size_t written = Update.writeStream(stream);
+                        if (written == contentLength) {
+                            Serial.println("Firmware successfully written, finishing update...");
+                            if (Update.end()) {
+                                Serial.println("Update complete! Rebooting...");
+                                ESP.restart();
+                            } else {
+                                Serial.printf("Update failed! Error: %s\n", Update.getErrorString().c_str());
+                            }
+                        } else {
+                            Serial.printf("Firmware write failed! Only wrote %d of %d bytes\n", written, contentLength);
+                        }
+                    } else {
+                        Serial.println("Not enough space for OTA update.");
+                    }
+                } else {
+                    Serial.println("Firmware download error: Empty response");
+                }
+            } else {
+                Serial.printf("Failed to download firmware! HTTP Error: %d\n", firmwareHttpCode);
             }
         } else {
             Serial.println("Firmware is up to date.");
         }
     } else {
-        Serial.printf("Failed to check update! HTTP error: %d\n", httpCode);
+        Serial.printf("Failed to check version! HTTP error: %d\n", httpCode);
     }
 
     http.end();
 }
 
 
-
 String getHTML() {
     String html = "<!DOCTYPE HTML><html><head>";
     html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
-    html += "<style>body{text-align:center;font-family:Arial;}"; 
-    html += ".button{padding:10px 20px;font-size:18px;display:inline-block;margin:10px;border:none;background:blue;color:white;cursor:pointer;}"; 
+    html += "<style>body{text-align:center;font-family:Arial;}";
+    html += ".button{padding:10px 20px;font-size:18px;display:inline-block;margin:10px;border:none;background:blue;color:white;cursor:pointer;}";
     html += "</style></head><body>";
 
-    html += "<h2>******** ESP8266 Web Server WITH OTA v1.0.4 **</h2>";
+    html += "<h2>ESP8266 Web Server WITH OTA ***</h2>";
     html += "<p>LED state: <strong style='color: red;'>";
     html += (LED_state == LOW) ? "OFF" : "ON";
     html += "</strong></p>";
@@ -195,6 +229,33 @@ String getHTML() {
 
 void setup() {
     Serial.begin(115200);
+    delay(1000);
+
+    // Step 1: Check if LittleFS mounts correctly
+    if (!LittleFS.begin()) {
+        Serial.println("Failed to mount LittleFS!");
+        return;  // Stop execution if filesystem is not available
+    } else {
+        Serial.println("LittleFS mounted successfully.");
+    }
+
+    // Step 2: Check if config.json exists before opening
+    if (!LittleFS.exists("/config.json")) {
+        Serial.println("Config file missing!");
+    } else {
+        Serial.println("Config file found. Reading...");
+
+        // Now try to open and read the config file
+        File configFile = LittleFS.open("/config.json", "r");
+        if (!configFile) {
+            Serial.println("Failed to open config file.");
+        } else {
+            Serial.println("Config file opened successfully.");
+            String configData = configFile.readString();
+            Serial.println("Config Contents: " + configData);
+            configFile.close();
+        }
+    }
     pinMode(LED_PIN, OUTPUT);
     pinMode(SWITCH_PIN, INPUT_PULLUP);
     pinMode(STATUS_LED, OUTPUT);
