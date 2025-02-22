@@ -13,9 +13,7 @@
 #define SWITCH_PIN D5      // The ESP8266 pin connected to the momentary switch
 #define STATUS_LED D4      // Status LED for WiFi connection feedback
 
-const String current_version = "1.0.2";  // Change this to match your current firmware version
-const char* version_url = "https://raw.githubusercontent.com/SWhardfish/ESP8266-LED-OTA/main/version.txt";  // URL to version file
-const char *firmware_url = "https://raw.githubusercontent.com/SWhardfish/ESP8266-LED-OTA/main/ESP8266-LED-OTA.bin"; // Change this to your hosted firmware binary
+const char *firmware_url = "https://github.com/SWhardfish/ESP8266-LED-OTA/releases/latest/download/ESP8266-LED-OTA.bin"; // URL to firmware binary
 
 String ssid = "";
 String password = "";
@@ -123,47 +121,36 @@ void checkForUpdates() {
     HTTPClient http;
 
     Serial.print("Connecting to: ");
-    Serial.println(version_url);
+    Serial.println(firmware_url);
 
     // Use WiFiClientSecure to make the request
     client.setInsecure();  // Use this to bypass certificate verification (not recommended for production)
-    http.begin(client, version_url);  // Pass the secure client to HTTPClient
+    http.begin(client, firmware_url);  // Pass the secure client to HTTPClient
 
     int httpCode = http.GET();
     Serial.print("HTTP Response Code: ");
     Serial.println(httpCode);
 
     if (httpCode == HTTP_CODE_OK) {
-        String latest_version = http.getString();
-        latest_version.trim(); // Clean up response
+        Serial.println("Firmware update available! Updating...");
 
-        Serial.print("Latest version: ");
-        Serial.println(latest_version);
-        Serial.print("Current version: ");
-        Serial.println(current_version);
+        t_httpUpdate_return result = ESPhttpUpdate.update(client, firmware_url);
 
-        if (latest_version != current_version) {
-            Serial.println("New version available! Updating...");
-            t_httpUpdate_return result = ESPhttpUpdate.update(client, firmware_url);
-
-            switch (result) {
-                case HTTP_UPDATE_FAILED:
-                    Serial.printf("Update failed! Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
-                    break;
-                case HTTP_UPDATE_NO_UPDATES:
-                    Serial.println("No new update available.");
-                    break;
-                case HTTP_UPDATE_OK:
-                    Serial.println("Update successful! Rebooting...");
-                    delay(1000);
-                    ESP.restart();
-                    break;
-            }
-        } else {
-            Serial.println("Firmware is up to date.");
+        switch (result) {
+            case HTTP_UPDATE_FAILED:
+                Serial.printf("Update failed! Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+                break;
+            case HTTP_UPDATE_NO_UPDATES:
+                Serial.println("No new update available.");
+                break;
+            case HTTP_UPDATE_OK:
+                Serial.println("Update successful! Rebooting...");
+                delay(1000);
+                ESP.restart();
+                break;
         }
     } else {
-        Serial.printf("Failed to check version! HTTP error: %d\n", httpCode);
+        Serial.printf("Failed to check update! HTTP error: %d\n", httpCode);
     }
 
     http.end();
@@ -177,7 +164,7 @@ String getHTML() {
     html += ".button{padding:10px 20px;font-size:18px;display:inline-block;margin:10px;border:none;background:blue;color:white;cursor:pointer;}"; 
     html += "</style></head><body>";
 
-    html += "<h2>**** ESP8266 Web Server WITH OTA ***</h2>";
+    html += "<h2>ESP8266 Web Server WITH OTA ***</h2>";
     html += "<p>LED state: <strong style='color: red;'>";
     html += (LED_state == LOW) ? "OFF" : "ON";
     html += "</strong></p>";
@@ -232,7 +219,6 @@ void setup() {
         server.send(200, "text/html", "<html><body><h1>Checking for updates...</h1></body></html>");
         checkForUpdates();
     });
-
 
     server.begin();
 }
