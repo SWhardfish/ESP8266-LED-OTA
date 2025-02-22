@@ -25,7 +25,7 @@ jobs:
           platformio run
 
       - name: Upload Firmware as Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ESP8266-LED-OTA.bin
           path: .pio/build/nodemcuv2/firmware.bin
