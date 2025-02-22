@@ -39,15 +39,15 @@ jobs:
           name: ESP8266-LED-OTA.bin
           path: .pio/build/nodemcuv2/firmware.bin
 
-      - name: Create GitHub Release and Upload .bin
-        if: github.event_name == 'push'
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: .pio/build/nodemcuv2/firmware.bin
-          tag_name: latest
-          release_name: Latest Firmware
-          body: "New firmware build from latest commit."
+          tag_name: 1.0.2  # You can use a specific tag like 1.0.1, or 'latest'
+          name: Latest Firmware 1.0.2  # This is where you specify the release name
+          body: New firmware build from latest commit.
+          files: .pio/build/nodemcuv2/firmware.bin  # Path to the firmware .bin file
           draft: false
           prerelease: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}  # Authentication with GitHub token
+
