@@ -1,0 +1,44 @@
+name: Build ESP8266 Firmware
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install PlatformIO
+        run: |
+          pip install platformio
+
+      - name: Build Firmware
+        run: |
+          platformio run
+
+      - name: Upload Firmware as Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ESP8266-LED-OTA.bin
+          path: .pio/build/nodemcuv2/firmware.bin
+
+      - name: Create GitHub Release and Upload .bin
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: .pio/build/nodemcuv2/firmware.bin
+          tag_name: latest
+          release_name: Latest Firmware
+          body: "New firmware build from latest commit."
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
