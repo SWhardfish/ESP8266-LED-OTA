@@ -2,11 +2,8 @@ name: Build ESP8266 Firmware
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+    tags:
+      - 'v*'  # Trigger on tag pushes like v1.0.3, v1.0.4, etc.
 
 jobs:
   build:
@@ -28,7 +25,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: 1.0.2
+          tag_name: ${{ github.ref }}  # Use the tag name automatically from the trigger
           files: .pio/build/nodemcuv2/firmware.bin
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -42,12 +39,11 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: 1.0.2  # You can use a specific tag like 1.0.1, or 'latest'
-          name: Latest Firmware 1.0.2  # This is where you specify the release name
+          tag_name: ${{ github.ref }}  # Use the tag name automatically from the trigger
+          name: Latest Firmware ${{ github.ref }}  # Dynamic release name based on the tag
           body: New firmware build from latest commit.
           files: .pio/build/nodemcuv2/firmware.bin  # Path to the firmware .bin file
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}  # Authentication with GitHub token
-
