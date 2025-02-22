@@ -13,6 +13,7 @@
 #define SWITCH_PIN D5      // The ESP8266 pin connected to the momentary switch
 #define STATUS_LED D4      // Status LED for WiFi connection feedback
 
+const String current_version = "v1.0.3";  // Set this to the current version of your firmware
 const char *firmware_url = "https://github.com/SWhardfish/ESP8266-LED-OTA/releases/latest/download/ESP8266-LED-OTA.bin"; // URL to firmware binary
 
 String ssid = "";
@@ -123,31 +124,43 @@ void checkForUpdates() {
     Serial.print("Connecting to: ");
     Serial.println(firmware_url);
 
-    // Use WiFiClientSecure to make the request
-    client.setInsecure();  // Use this to bypass certificate verification (not recommended for production)
-    http.begin(client, firmware_url);  // Pass the secure client to HTTPClient
+    client.setInsecure();  // This bypasses SSL certificate validation
+
+    http.begin(client, firmware_url);
+    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);  // Enable following redirects
 
     int httpCode = http.GET();
     Serial.print("HTTP Response Code: ");
     Serial.println(httpCode);
 
     if (httpCode == HTTP_CODE_OK) {
-        Serial.println("Firmware update available! Updating...");
+        String latest_version = http.getString();
+        latest_version.trim(); // Clean up response
 
-        t_httpUpdate_return result = ESPhttpUpdate.update(client, firmware_url);
+        Serial.print("Latest version: ");
+        Serial.println(latest_version);
+        Serial.print("Current version: ");
+        Serial.println(current_version);
 
-        switch (result) {
-            case HTTP_UPDATE_FAILED:
-                Serial.printf("Update failed! Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
-                break;
-            case HTTP_UPDATE_NO_UPDATES:
-                Serial.println("No new update available.");
-                break;
-            case HTTP_UPDATE_OK:
-                Serial.println("Update successful! Rebooting...");
-                delay(1000);
-                ESP.restart();
-                break;
+        if (latest_version != current_version) {
+            Serial.println("New version available! Updating...");
+            t_httpUpdate_return result = ESPhttpUpdate.update(client, firmware_url);
+
+            switch (result) {
+                case HTTP_UPDATE_FAILED:
+                    Serial.printf("Update failed! Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+                    break;
+                case HTTP_UPDATE_NO_UPDATES:
+                    Serial.println("No new update available.");
+                    break;
+                case HTTP_UPDATE_OK:
+                    Serial.println("Update successful! Rebooting...");
+                    delay(1000);
+                    ESP.restart();
+                    break;
+            }
+        } else {
+            Serial.println("Firmware is up to date.");
         }
     } else {
         Serial.printf("Failed to check update! HTTP error: %d\n", httpCode);
@@ -155,6 +168,7 @@ void checkForUpdates() {
 
     http.end();
 }
+
 
 
 String getHTML() {
