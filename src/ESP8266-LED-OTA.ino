@@ -13,7 +13,7 @@
 #define SWITCH_PIN D5      // The ESP8266 pin connected to the momentary switch
 #define STATUS_LED D4      // Status LED for WiFi connection feedback
 
-const String current_version = "v1.0.3";  // Set this to the current version of your firmware
+const String current_version = "v1.0.4";  // Set this to the current version of your firmware
 const char *firmware_url = "https://github.com/SWhardfish/ESP8266-LED-OTA/releases/latest/download/ESP8266-LED-OTA.bin"; // URL to firmware binary
 
 String ssid = "";
@@ -178,7 +178,7 @@ String getHTML() {
     html += ".button{padding:10px 20px;font-size:18px;display:inline-block;margin:10px;border:none;background:blue;color:white;cursor:pointer;}"; 
     html += "</style></head><body>";
 
-    html += "<h2>ESP8266 Web Server WITH OTA v1.0.3 **</h2>";
+    html += "<h2>******** ESP8266 Web Server WITH OTA v1.0.4 **</h2>";
     html += "<p>LED state: <strong style='color: red;'>";
     html += (LED_state == LOW) ? "OFF" : "ON";
     html += "</strong></p>";
