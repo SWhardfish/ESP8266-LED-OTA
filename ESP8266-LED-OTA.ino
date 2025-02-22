@@ -177,7 +177,7 @@ String getHTML() {
     html += ".button{padding:10px 20px;font-size:18px;display:inline-block;margin:10px;border:none;background:blue;color:white;cursor:pointer;}"; 
     html += "</style></head><body>";
 
-    html += "<h2>*** ESP8266 Web Server WITH OTA ***</h2>";
+    html += "<h2>**** ESP8266 Web Server WITH OTA ***</h2>";
     html += "<p>LED state: <strong style='color: red;'>";
     html += (LED_state == LOW) ? "OFF" : "ON";
     html += "</strong></p>";
