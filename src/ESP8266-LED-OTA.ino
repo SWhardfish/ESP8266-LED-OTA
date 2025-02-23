@@ -17,7 +17,7 @@
 #define SWITCH_PIN D5      // The ESP8266 pin connected to the momentary switch
 #define STATUS_LED D4      // Status LED for WiFi connection feedback
 
-const String current_version = "1.0.18";  // Set this to the current version of your firmware
+const String current_version = "1.0.19";  // Set this to the current version of your firmware
 const String api_url = "https://api.github.com/repos/SWhardfish/ESP8266-LED-OTA/releases/latest"; // GitHub API for latest release
 const char *firmware_url = "https://github.com/SWhardfish/ESP8266-LED-OTA/releases/latest/download/firmware.bin"; // URL to firmware binary
 
@@ -33,6 +33,11 @@ int switchState = HIGH;
 int lastSwitchState = HIGH;
 unsigned long lastDebounceTime = 0;
 unsigned long debounceDelay = 50;
+
+// Reboot time variables
+const int rebootHour = 3; // Default reboot time at 03:00
+const int rebootMinute = 0;
+bool rebootTriggered = false;
 
 void loadConfig() {
     if (!LittleFS.begin()) {
@@ -216,7 +221,6 @@ void checkForUpdates() {
     http.end();
 }
 
-
 String getHTML() {
     String html = "<!DOCTYPE HTML><html><head>";
     html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
@@ -224,7 +228,7 @@ String getHTML() {
     html += ".button{padding:10px 20px;font-size:18px;display:inline-block;margin:10px;border:none;background:blue;color:white;cursor:pointer;}";
     html += "</style></head><body>";
 
-    html += "<h2>ESP8266 Web Server WITH OTA v1.0.18</h2>";
+    html += "<h2>ESP8266 Web Server WITH OTA v1.0.19</h2>";
     html += "<p>LED state: <strong style='color: red;'>";
     html += (LED_state == LOW) ? "OFF" : "ON";
     html += "</strong></p>";
@@ -315,6 +319,7 @@ void loop() {
     ArduinoOTA.handle();
     timeClient.update(); // Update NTP time
 
+    // Handle momentary switch
     int reading = digitalRead(SWITCH_PIN);
     if (reading != lastSwitchState) {
         lastDebounceTime = millis();
@@ -331,6 +336,17 @@ void loop() {
         }
     }
     lastSwitchState = reading;
+
+    // Handle daily reboot
+    if (timeClient.getHours() == rebootHour && timeClient.getMinutes() == rebootMinute) {
+        if (!rebootTriggered) {
+            Serial.println("Reboot time reached. Rebooting...");
+            rebootTriggered = true;
+            ESP.restart();
+        }
+    } else {
+        rebootTriggered = false;
+    }
 
     if (WiFi.status() != WL_CONNECTED) {
         Serial.println("Lost WiFi connection! Reconnecting...");
