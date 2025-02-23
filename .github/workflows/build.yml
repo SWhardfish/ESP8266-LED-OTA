@@ -19,6 +19,9 @@ jobs:
       - name: Install PlatformIO
         run: pip install platformio
 
+      - name: Install ESP8266 Core
+        run: arduino-cli core install esp8266:esp8266@3.1.2
+
       - name: Install Dependencies
         run: platformio lib install
 
