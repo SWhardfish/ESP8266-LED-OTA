@@ -17,7 +17,7 @@
 #define SWITCH_PIN D5      // The ESP8266 pin connected to the momentary switch
 #define STATUS_LED D4      // Status LED for WiFi connection feedback
 
-const String current_version = "v1.0.25";  // Set this to the current version of your firmware
+const String current_version = "v1.0.26";  // Set this to the current version of your firmware
 const String api_url = "https://api.github.com/repos/SWhardfish/ESP8266-LED-OTA/releases/latest"; // GitHub API for latest release
 const char *firmware_url = "https://github.com/SWhardfish/ESP8266-LED-OTA/releases/latest/download/firmware.bin"; // URL to firmware binary
 
@@ -146,8 +146,11 @@ void removePreviousOTAFile() {
     }
 }
 
+String updateStatus = "";
+
 void checkForUpdates() {
     Serial.println("Checking for firmware updates...");
+    updateStatus = "Checking for firmware updates...";
 
     // Remove previous OTA file if exists
     removePreviousOTAFile();
@@ -163,6 +166,7 @@ void checkForUpdates() {
     int httpCode = http.GET();
     Serial.print("HTTP Response Code: ");
     Serial.println(httpCode);
+    updateStatus += "<br>HTTP Response Code: " + String(httpCode);
 
     if (httpCode == HTTP_CODE_OK) {
         // Parse JSON response
@@ -172,6 +176,7 @@ void checkForUpdates() {
 
         if (error) {
             Serial.println("Failed to parse JSON");
+            updateStatus += "<br>Failed to parse JSON";
             return;
         }
 
@@ -183,11 +188,15 @@ void checkForUpdates() {
         Serial.println(latest_version);
         Serial.print("Current version: ");
         Serial.println(current_version);
+        updateStatus += "<br>Latest version: " + latest_version;
+        updateStatus += "<br>Current version: " + current_version;
 
         if (latest_version != current_version) {
             Serial.println("New version available! Updating...");
             Serial.print("Firmware URL: ");
             Serial.println(firmware_url);
+            updateStatus += "<br>New version available! Updating...";
+            updateStatus += "<br>Firmware URL: " + firmware_url;
 
             // Manually download firmware
             http.end();
@@ -200,36 +209,47 @@ void checkForUpdates() {
                 size_t contentLength = http.getSize();
                 if (contentLength > 0) {
                     Serial.printf("Firmware size: %d bytes\n", contentLength);
+                    updateStatus += "<br>Firmware size: " + String(contentLength) + " bytes";
 
                     // Start OTA update
                     if (Update.begin(contentLength)) {
                         Serial.println("Starting OTA update...");
+                        updateStatus += "<br>Starting OTA update...";
                         size_t written = Update.writeStream(stream);
                         if (written == contentLength) {
                             Serial.println("Firmware successfully written, finishing update...");
+                            updateStatus += "<br>Firmware successfully written, finishing update...";
                             if (Update.end()) {
                                 Serial.println("Update complete! Rebooting...");
+                                updateStatus += "<br>Update complete! Rebooting...";
                                 ESP.restart();
                             } else {
                                 Serial.printf("Update failed! Error: %s\n", Update.getErrorString().c_str());
+                                updateStatus += "<br>Update failed! Error: " + String(Update.getErrorString().c_str());
                             }
                         } else {
                             Serial.printf("Firmware write failed! Only wrote %d of %d bytes\n", written, contentLength);
+                            updateStatus += "<br>Firmware write failed! Only wrote " + String(written) + " of " + String(contentLength) + " bytes";
                         }
                     } else {
                         Serial.println("Not enough space for OTA update.");
+                        updateStatus += "<br>Not enough space for OTA update.";
                     }
                 } else {
                     Serial.println("Firmware download error: Empty response");
+                    updateStatus += "<br>Firmware download error: Empty response";
                 }
             } else {
                 Serial.printf("Failed to download firmware! HTTP Error: %d\n", firmwareHttpCode);
+                updateStatus += "<br>Failed to download firmware! HTTP Error: " + String(firmwareHttpCode);
             }
         } else {
             Serial.println("Firmware is up to date.");
+            updateStatus += "<br>Firmware is up to date.";
         }
     } else {
         Serial.printf("Failed to check version! HTTP error: %d\n", httpCode);
+        updateStatus += "<br>Failed to check version! HTTP error: " + String(httpCode);
     }
 
     http.end();
@@ -239,19 +259,23 @@ String getHTML() {
     String html = "<!DOCTYPE HTML><html><head>";
     html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
     html += "<style>body{text-align:center;font-family:Arial;}";
-    html += ".button{padding:10px 20px;font-size:18px;display:inline-block;margin:10px;border:none;background:blue;color:white;cursor:pointer;}";
+    html += ".button{padding:10px 20px;font-size:18px;display:inline-block;margin:10px;border:none;background:blue;color:white;cursor:pointer;border-radius:10px;}";
+    html += ".button-container{display:flex;flex-wrap:wrap;justify-content:center;}";
+    html += ".button-container a{flex:1 1 45%;margin:5px;}";
     html += "</style></head><body>";
 
-    html += "<h2>ESP8266 Web Server WITH OTA v1.0.25</h2>";
+    html += "<h2>ESP8266 Web Server WITH OTA " + current_version + "</h2>";
     html += "<p>LED state: <strong style='color: red;'>";
     html += (LED_state == LOW) ? "OFF" : "ON";
     html += "</strong></p>";
+    html += "<div class='button-container'>";
     html += "<a class='button' href='/led1/on'>Turn ON</a>";
     html += "<a class='button' href='/led1/off'>Turn OFF</a>";
     html += "<a class='button' href='/reboot'>Reboot</a>";
     html += "<a class='button' href='/update'>Check for Update</a>";
-
+    html += "</div>";
     html += "<p>Current Time: " + timeClient.getFormattedTime() + "</p>";
+    html += "<p>" + updateStatus + "</p>";
     html += "</body></html>";
 
     return html;
@@ -321,8 +345,8 @@ void setup() {
     });
 
     server.on("/update", HTTP_GET, []() {
-        server.send(200, "text/html", "<html><body><h1>Checking for updates...</h1></body></html>");
         checkForUpdates();
+        server.send(200, "text/html", getHTML());
     });
 
     server.begin();
