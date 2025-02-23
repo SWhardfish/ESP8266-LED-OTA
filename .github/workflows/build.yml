@@ -3,7 +3,7 @@ name: Build ESP8266 Firmware
 on:
   push:
     tags:
-      - 'v*'  # Trigger on tag pushes like v1.0.3, v1.0.4, etc.
+      - 'v*'  # Trigger on tag pushes like v1.0.3, v1.0.5, etc.
 
 jobs:
   build:
