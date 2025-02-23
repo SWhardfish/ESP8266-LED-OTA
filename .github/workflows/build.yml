@@ -13,28 +13,20 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install ESP8266 Core
-        run: arduino-cli core install esp8266:esp8266@3.1.2
-
       - name: Install PlatformIO
         run: pip install platformio
 
-      - name: Install ESP8266 Core
-        run: arduino-cli core install esp8266:esp8266@3.1.2
+      - name: Check PlatformIO Version
+        run: pio platform show espressif8266
 
       - name: Install Dependencies
         run: platformio lib install
 
+      - name: Clean Build
+        run: pio run -t clean
+
       - name: Build Firmware
         run: platformio run
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref }}  # Use the tag name automatically from the trigger
-          files: .pio/build/nodemcuv2/firmware.bin
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Upload Firmware as Artifact
         uses: actions/upload-artifact@v4
@@ -45,11 +37,11 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref }}  # Use the tag name automatically from the trigger
-          name: Latest Firmware ${{ github.ref }}  # Dynamic release name based on the tag
+          tag_name: ${{ github.ref }}
+          name: Latest Firmware ${{ github.ref }}
           body: New firmware build from latest commit.
-          files: .pio/build/nodemcuv2/firmware.bin  # Path to the firmware .bin file
+          files: .pio/build/nodemcuv2/firmware.bin
           draft: false
           prerelease: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}  # Authentication with GitHub token
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
