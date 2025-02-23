@@ -17,7 +17,7 @@
 #define SWITCH_PIN D5      // The ESP8266 pin connected to the momentary switch
 #define STATUS_LED D4      // Status LED for WiFi connection feedback
 
-const String current_version = "1.0.20";  // Set this to the current version of your firmware
+const String current_version = "1.0.21";  // Set this to the current version of your firmware
 const String api_url = "https://api.github.com/repos/SWhardfish/ESP8266-LED-OTA/releases/latest"; // GitHub API for latest release
 const char *firmware_url = "https://github.com/SWhardfish/ESP8266-LED-OTA/releases/latest/download/firmware.bin"; // URL to firmware binary
 
@@ -47,24 +47,10 @@ const int morningOffMinute = 0;
 const int eveningOffHour = 23;
 const int eveningOffMinute = 30;
 
-// Stockholm coordinates for sunset calculation
-const float stockholmLatitude = 59.3293;
-const float stockholmLongitude = 18.0686;
-
-// Function to calculate sunset time (simplified approximation)
+// Simplified sunset time for Stockholm (approximation)
 int getSunsetHour() {
-    // Simplified sunset calculation for Stockholm (can be replaced with a more accurate method)
-    // This is a rough approximation and may not be accurate for all days.
-    int month = timeClient.getMonth();
-    int day = timeClient.getDay();
-    int year = timeClient.getYear();
-
-    // Example: Sunset time varies between 15:00 (3 PM) in winter and 22:00 (10 PM) in summer
-    if (month >= 3 && month <= 9) {
-        return 21; // Summer sunset at 9 PM
-    } else {
-        return 16; // Winter sunset at 4 PM
-    }
+    // Use a fixed sunset time for simplicity (can be adjusted seasonally)
+    return 21; // 9 PM (summer sunset time)
 }
 
 void loadConfig() {
@@ -256,7 +242,7 @@ String getHTML() {
     html += ".button{padding:10px 20px;font-size:18px;display:inline-block;margin:10px;border:none;background:blue;color:white;cursor:pointer;}";
     html += "</style></head><body>";
 
-    html += "<h2>ESP8266 Web Server WITH OTA v1.0.20</h2>";
+    html += "<h2>ESP8266 Web Server WITH OTA v1.0.21</h2>";
     html += "<p>LED state: <strong style='color: red;'>";
     html += (LED_state == LOW) ? "OFF" : "ON";
     html += "</strong></p>";
