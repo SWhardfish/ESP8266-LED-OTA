@@ -17,7 +17,7 @@
 #define SWITCH_PIN D5      // The ESP8266 pin connected to the momentary switch
 #define STATUS_LED D4      // Status LED for WiFi connection feedback
 
-const String current_version = "1.0.19";  // Set this to the current version of your firmware
+const String current_version = "1.0.20";  // Set this to the current version of your firmware
 const String api_url = "https://api.github.com/repos/SWhardfish/ESP8266-LED-OTA/releases/latest"; // GitHub API for latest release
 const char *firmware_url = "https://github.com/SWhardfish/ESP8266-LED-OTA/releases/latest/download/firmware.bin"; // URL to firmware binary
 
@@ -38,6 +38,34 @@ unsigned long debounceDelay = 50;
 const int rebootHour = 3; // Default reboot time at 03:00
 const int rebootMinute = 0;
 bool rebootTriggered = false;
+
+// LED schedule variables
+const int morningOnHour = 6;
+const int morningOnMinute = 30;
+const int morningOffHour = 9;
+const int morningOffMinute = 0;
+const int eveningOffHour = 23;
+const int eveningOffMinute = 30;
+
+// Stockholm coordinates for sunset calculation
+const float stockholmLatitude = 59.3293;
+const float stockholmLongitude = 18.0686;
+
+// Function to calculate sunset time (simplified approximation)
+int getSunsetHour() {
+    // Simplified sunset calculation for Stockholm (can be replaced with a more accurate method)
+    // This is a rough approximation and may not be accurate for all days.
+    int month = timeClient.getMonth();
+    int day = timeClient.getDay();
+    int year = timeClient.getYear();
+
+    // Example: Sunset time varies between 15:00 (3 PM) in winter and 22:00 (10 PM) in summer
+    if (month >= 3 && month <= 9) {
+        return 21; // Summer sunset at 9 PM
+    } else {
+        return 16; // Winter sunset at 4 PM
+    }
+}
 
 void loadConfig() {
     if (!LittleFS.begin()) {
@@ -228,7 +256,7 @@ String getHTML() {
     html += ".button{padding:10px 20px;font-size:18px;display:inline-block;margin:10px;border:none;background:blue;color:white;cursor:pointer;}";
     html += "</style></head><body>";
 
-    html += "<h2>ESP8266 Web Server WITH OTA v1.0.19</h2>";
+    html += "<h2>ESP8266 Web Server WITH OTA v1.0.20</h2>";
     html += "<p>LED state: <strong style='color: red;'>";
     html += (LED_state == LOW) ? "OFF" : "ON";
     html += "</strong></p>";
@@ -346,6 +374,35 @@ void loop() {
         }
     } else {
         rebootTriggered = false;
+    }
+
+    // Handle LED schedule
+    int currentHour = timeClient.getHours();
+    int currentMinute = timeClient.getMinutes();
+
+    // Morning schedule: Turn on at 06:30, turn off at 09:00
+    if (currentHour == morningOnHour && currentMinute == morningOnMinute) {
+        digitalWrite(LED_PIN, HIGH);
+        LED_state = HIGH;
+        Serial.println("LED turned ON (morning schedule)");
+    }
+    if (currentHour == morningOffHour && currentMinute == morningOffMinute) {
+        digitalWrite(LED_PIN, LOW);
+        LED_state = LOW;
+        Serial.println("LED turned OFF (morning schedule)");
+    }
+
+    // Evening schedule: Turn on 1 hour before sunset, turn off at 23:30
+    int sunsetHour = getSunsetHour();
+    if (currentHour == (sunsetHour - 1) && currentMinute == 0) {
+        digitalWrite(LED_PIN, HIGH);
+        LED_state = HIGH;
+        Serial.println("LED turned ON (evening schedule)");
+    }
+    if (currentHour == eveningOffHour && currentMinute == eveningOffMinute) {
+        digitalWrite(LED_PIN, LOW);
+        LED_state = LOW;
+        Serial.println("LED turned OFF (evening schedule)");
     }
 
     if (WiFi.status() != WL_CONNECTED) {
