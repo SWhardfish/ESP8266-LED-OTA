@@ -16,11 +16,14 @@ jobs:
       - name: Install PlatformIO
         run: pip install platformio
 
+      - name: Install ESP8266 Core
+        run: pio pkg install --global --platform espressif8266@3.1.2
+
       - name: Check PlatformIO Version
         run: pio platform show espressif8266
 
       - name: Install Dependencies
-        run: platformio lib install
+        run: platformio pkg install
 
       - name: Clean Build
         run: pio run -t clean
