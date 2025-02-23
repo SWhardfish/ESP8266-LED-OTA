@@ -13,6 +13,9 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Install ESP8266 Core
+        run: arduino-cli core install esp8266:esp8266@3.1.2
+
       - name: Install PlatformIO
         run: pip install platformio
 
