@@ -120,8 +120,18 @@ void startOTA() {
     Serial.println("OTA Ready.");
 }
 
+void removePreviousOTAFile() {
+    if (LittleFS.exists("/firmware.bin")) {
+        LittleFS.remove("/firmware.bin");
+        Serial.println("Previous OTA file removed.");
+    }
+}
+
 void checkForUpdates() {
     Serial.println("Checking for firmware updates...");
+
+    // Remove previous OTA file if exists
+    removePreviousOTAFile();
 
     std::unique_ptr<BearSSL::WiFiClientSecure> client(new BearSSL::WiFiClientSecure);
     HTTPClient http;
