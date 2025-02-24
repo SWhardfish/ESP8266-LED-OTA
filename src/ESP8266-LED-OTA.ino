@@ -1,4 +1,4 @@
-#include <LittleFS.h> 
+#include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
@@ -51,7 +51,7 @@ const int eveningOffMinute = 30;
 // Simplified sunset time for Stockholm (approximation)
 int getSunsetHour() {
     // Use a fixed sunset time for simplicity (can be adjusted seasonally)
-    return 17; //
+    return 17; // 5 PM
 }
 
 void loadConfig() {
@@ -257,6 +257,57 @@ void checkForUpdates() {
     http.end();
 }
 
+// File upload handler
+void handleFileUpload() {
+    HTTPUpload& upload = server.upload();
+    if (upload.status == UPLOAD_FILE_START) {
+        // Open the file for writing in LittleFS
+        String filename = upload.filename;
+        if (!filename.startsWith("/")) {
+            filename = "/" + filename;
+        }
+        Serial.printf("Uploading file: %s\n", filename.c_str());
+        File file = LittleFS.open(filename, "w");
+        if (!file) {
+            Serial.println("Failed to open file for writing");
+            return;
+        }
+        upload.file = file;
+    } else if (upload.status == UPLOAD_FILE_WRITE) {
+        // Write the received data to the file
+        if (upload.file) {
+            size_t written = upload.file.write(upload.buf, upload.currentSize);
+            if (written != upload.currentSize) {
+                Serial.println("Write failed");
+            }
+        }
+    } else if (upload.status == UPLOAD_FILE_END) {
+        // Close the file
+        if (upload.file) {
+            upload.file.close();
+            Serial.printf("Upload complete: %s, size: %d\n", upload.filename.c_str(), upload.totalSize);
+            server.send(200, "text/plain", "File uploaded successfully!");
+        } else {
+            server.send(500, "text/plain", "File upload failed!");
+        }
+    }
+}
+
+// File listing handler
+void handleFileList() {
+    String html = "<!DOCTYPE HTML><html><head><meta name='viewport' content='width=device-width, initial-scale=1'></head><body>";
+    html += "<h2>Files in LittleFS</h2>";
+    html += "<ul>";
+    Dir dir = LittleFS.openDir("/");
+    while (dir.next()) {
+        html += "<li>" + dir.fileName() + " (" + dir.fileSize() + " bytes)</li>";
+    }
+    html += "</ul>";
+    html += "<a href='/'>Back to main page</a>";
+    html += "</body></html>";
+    server.send(200, "text/html", html);
+}
+
 String getHTML() {
     String html = "<!DOCTYPE HTML><html><head>";
     html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
@@ -293,11 +344,17 @@ String getHTML() {
     html += "<li>Morning ON: " + String(morningOnHour) + ":" + String(morningOnMinute < 10 ? "0" : "") + String(morningOnMinute) + "</li>";
     html += "<li>Morning OFF: " + String(morningOffHour) + ":" + String(morningOffMinute < 10 ? "0" : "") + String(morningOffMinute) + "</li>";
     html += "<li>Evening OFF: " + String(eveningOffHour) + ":" + String(eveningOffMinute < 10 ? "0" : "") + String(eveningOffMinute) + "</li>";
+    html += "<li>Sunset Time: " + String(getSunsetHour()) + ":00</li>"; // Add sunset time to the schedule
     html += "</ul>";
     html += "</div>";
     html += "<p>Current Time: " + timeClient.getFormattedTime() + "</p>";
     html += "<p>" + updateStatus + "</p>";
     html += "<p>" + rebootStatus + "</p>";
+    html += "<form method='post' enctype='multipart/form-data' action='/upload'>";
+    html += "<input type='file' name='file' accept='.json'>";
+    html += "<input type='submit' class='button' value='Upload config.json'>";
+    html += "</form>";
+    html += "<a href='/files'>View files in LittleFS</a>";
     html += "</body></html>";
 
     return html;
@@ -371,6 +428,12 @@ void setup() {
         checkForUpdates();
         server.send(200, "text/html", getHTML());
     });
+
+    server.on("/upload", HTTP_POST, []() {
+        server.send(200, "text/plain", "File uploaded successfully!");
+    }, handleFileUpload);
+
+    server.on("/files", HTTP_GET, handleFileList);
 
     server.begin();
 }
