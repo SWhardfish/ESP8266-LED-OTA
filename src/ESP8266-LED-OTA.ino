@@ -17,7 +17,9 @@
 #define SWITCH_PIN D5      // The ESP8266 pin connected to the momentary switch
 #define STATUS_LED D4      // Status LED for WiFi connection feedback
 
-const String current_version = "v1.0.26";  // Set this to the current version of your firmware
+//const String current_version = "v1.0.26";  // Set this to the current version of your firmware
+// Replace the hardcoded version with the macro
+const String current_version = VERSION;
 const String api_url = "https://api.github.com/repos/SWhardfish/ESP8266-LED-OTA/releases/latest"; // GitHub API for latest release
 const char *firmware_url = "https://github.com/SWhardfish/ESP8266-LED-OTA/releases/latest/download/firmware.bin"; // URL to firmware binary
 
@@ -50,7 +52,7 @@ const int eveningOffMinute = 30;
 // Simplified sunset time for Stockholm (approximation)
 int getSunsetHour() {
     // Use a fixed sunset time for simplicity (can be adjusted seasonally)
-    return 17; // 9 PM (summer sunset time)
+    return 17; //
 }
 
 void loadConfig() {
