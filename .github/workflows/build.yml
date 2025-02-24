@@ -36,8 +36,9 @@ jobs:
         run: pio run -t clean
 
       - name: Build Firmware
-        run: |
-          platformio run -DVERSION="${{ steps.extract_version.outputs.VERSION }}"
+        env:
+          PLATFORMIO_BUILD_FLAGS: -D VERSION=\"${{ steps.extract_version.outputs.VERSION }}\"
+        run: platformio run
 
       - name: Upload Firmware as Artifact
         uses: actions/upload-artifact@v4
