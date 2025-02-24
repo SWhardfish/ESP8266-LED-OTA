@@ -147,6 +147,7 @@ void removePreviousOTAFile() {
 }
 
 String updateStatus = "";
+String rebootStatus = "";
 
 void checkForUpdates() {
     Serial.println("Checking for firmware updates...");
@@ -271,11 +272,14 @@ String getHTML() {
     html += "<div class='button-container'>";
     html += "<a class='button' href='/led1/on'>Turn ON</a>";
     html += "<a class='button' href='/led1/off'>Turn OFF</a>";
+    html += "</div>";
+    html += "<div class='button-container'>";
     html += "<a class='button' href='/reboot'>Reboot</a>";
     html += "<a class='button' href='/update'>Check for Update</a>";
     html += "</div>";
     html += "<p>Current Time: " + timeClient.getFormattedTime() + "</p>";
     html += "<p>" + updateStatus + "</p>";
+    html += "<p>" + rebootStatus + "</p>";
     html += "</body></html>";
 
     return html;
@@ -339,7 +343,8 @@ void setup() {
     });
 
     server.on("/reboot", HTTP_GET, []() {
-        server.send(200, "text/html", "<html><body><h1>Rebooting...</h1></body></html>");
+        rebootStatus = "Rebooting...";
+        server.send(200, "text/html", getHTML());
         delay(1000);
         ESP.restart();
     });
