@@ -17,7 +17,7 @@
 #define SWITCH_PIN D5      // The ESP8266 pin connected to the momentary switch
 #define STATUS_LED D4      // Status LED for WiFi connection feedback
 
-const String current_version = "v1.0.26";  // Set this to the current version of your firmware
+const String current_version = "v1.0.28";  // Set this to the current version of your firmware
 const String api_url = "https://api.github.com/repos/SWhardfish/ESP8266-LED-OTA/releases/latest"; // GitHub API for latest release
 const char *firmware_url = "https://github.com/SWhardfish/ESP8266-LED-OTA/releases/latest/download/firmware.bin"; // URL to firmware binary
 
