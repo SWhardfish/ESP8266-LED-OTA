@@ -17,7 +17,7 @@
 #define SWITCH_PIN D5      // The ESP8266 pin connected to the momentary switch
 #define STATUS_LED D4      // Status LED for WiFi connection feedback
 
-const String current_version = "v1.0.28";  // Set this to the current version of your firmware
+const String current_version = "v1.0.26";  // Set this to the current version of your firmware
 const String api_url = "https://api.github.com/repos/SWhardfish/ESP8266-LED-OTA/releases/latest"; // GitHub API for latest release
 const char *firmware_url = "https://github.com/SWhardfish/ESP8266-LED-OTA/releases/latest/download/firmware.bin"; // URL to firmware binary
 
@@ -259,10 +259,15 @@ void checkForUpdates() {
 String getHTML() {
     String html = "<!DOCTYPE HTML><html><head>";
     html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
-    html += "<style>body{text-align:center;font-family:Arial;}";
+    html += "<style>";
+    html += "body{text-align:center;font-family:Arial;}";
     html += ".button{padding:10px 20px;font-size:18px;display:inline-block;margin:10px;border:none;background:blue;color:white;cursor:pointer;border-radius:10px;}";
     html += ".button-container{display:flex;flex-wrap:wrap;justify-content:center;}";
     html += ".button-container a{flex:1 1 45%;margin:5px;}";
+    html += ".schedule{text-align:left;margin:20px auto;width:80%;max-width:400px;padding:10px;border:1px solid #ccc;border-radius:10px;}";
+    html += ".schedule h3{margin:0 0 10px 0;}";
+    html += ".schedule ul{list-style-type:none;padding:0;}";
+    html += ".schedule li{margin:5px 0;}";
     html += "</style></head><body>";
 
     html += "<h2>ESP8266 Web Server WITH OTA " + current_version + "</h2>";
@@ -276,6 +281,18 @@ String getHTML() {
     html += "<div class='button-container'>";
     html += "<a class='button' href='/reboot'>Reboot</a>";
     html += "<a class='button' href='/update'>Check for Update</a>";
+    html += "</div>";
+    html += "<div class='schedule'>";
+    html += "<h3>Reboot Schedule</h3>";
+    html += "<ul>";
+    html += "<li>Reboot Time: " + String(rebootHour) + ":" + String(rebootMinute < 10 ? "0" : "") + String(rebootMinute) + "</li>";
+    html += "</ul>";
+    html += "<h3>LED Schedule</h3>";
+    html += "<ul>";
+    html += "<li>Morning ON: " + String(morningOnHour) + ":" + String(morningOnMinute < 10 ? "0" : "") + String(morningOnMinute) + "</li>";
+    html += "<li>Morning OFF: " + String(morningOffHour) + ":" + String(morningOffMinute < 10 ? "0" : "") + String(morningOffMinute) + "</li>";
+    html += "<li>Evening OFF: " + String(eveningOffHour) + ":" + String(eveningOffMinute < 10 ? "0" : "") + String(eveningOffMinute) + "</li>";
+    html += "</ul>";
     html += "</div>";
     html += "<p>Current Time: " + timeClient.getFormattedTime() + "</p>";
     html += "<p>" + updateStatus + "</p>";
