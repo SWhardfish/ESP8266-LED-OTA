@@ -260,6 +260,8 @@ void checkForUpdates() {
 // File upload handler
 void handleFileUpload() {
     HTTPUpload& upload = server.upload();
+    static File file;
+
     if (upload.status == UPLOAD_FILE_START) {
         // Open the file for writing in LittleFS
         String filename = upload.filename;
@@ -267,24 +269,23 @@ void handleFileUpload() {
             filename = "/" + filename;
         }
         Serial.printf("Uploading file: %s\n", filename.c_str());
-        File file = LittleFS.open(filename, "w");
+        file = LittleFS.open(filename, "w");
         if (!file) {
             Serial.println("Failed to open file for writing");
             return;
         }
-        upload.file = file;
     } else if (upload.status == UPLOAD_FILE_WRITE) {
         // Write the received data to the file
-        if (upload.file) {
-            size_t written = upload.file.write(upload.buf, upload.currentSize);
+        if (file) {
+            size_t written = file.write(upload.buf, upload.currentSize);
             if (written != upload.currentSize) {
                 Serial.println("Write failed");
             }
         }
     } else if (upload.status == UPLOAD_FILE_END) {
         // Close the file
-        if (upload.file) {
-            upload.file.close();
+        if (file) {
+            file.close();
             Serial.printf("Upload complete: %s, size: %d\n", upload.filename.c_str(), upload.totalSize);
             server.send(200, "text/plain", "File uploaded successfully!");
         } else {
@@ -374,27 +375,21 @@ void setup() {
 
     // Step 2: Check if config.json exists before opening
     if (!LittleFS.exists("/config.json")) {
-        Serial.println("Config file missing!");
+        Serial.println("Config file missing! Please enter Wi-Fi credentials:");
+        Serial.println("Enter SSID:");
+        while (!Serial.available()) {}
+        ssid = Serial.readStringUntil('\n');
+        Serial.println("Enter Password:");
+        while (!Serial.available()) {}
+        password = Serial.readStringUntil('\n');
+
+        Serial.println("Using temporary Wi-Fi credentials:");
+        Serial.println("SSID: " + ssid);
+        Serial.println("Password: " + password);
     } else {
-        Serial.println("Config file found. Reading...");
-
-        // Now try to open and read the config file
-        File configFile = LittleFS.open("/config.json", "r");
-        if (!configFile) {
-            Serial.println("Failed to open config file.");
-        } else {
-            Serial.println("Config file opened successfully.");
-            String configData = configFile.readString();
-            Serial.println("Config Contents: " + configData);
-            configFile.close();
-        }
+        loadConfig();  // Load WiFi credentials from file
     }
-    pinMode(LED_PIN, OUTPUT);
-    pinMode(SWITCH_PIN, INPUT_PULLUP);
-    pinMode(STATUS_LED, OUTPUT);
-    digitalWrite(STATUS_LED, HIGH); // Start with status LED on
 
-    loadConfig();  // Load WiFi credentials from file
     connectWiFi();
     startOTA();
     timeClient.begin();
