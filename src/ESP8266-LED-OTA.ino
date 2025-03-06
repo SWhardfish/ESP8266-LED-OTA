@@ -10,14 +10,10 @@
 #include <WiFiClientSecure.h>
 #include <WiFiClientSecureBearSSL.h>
 
-#define DEBUG_ESP_HTTP_UPDATE
-#define DEBUG_ESP_PORT Serial
-
 #define LED_PIN D6         // The ESP8266 pin connected to LED
 #define SWITCH_PIN D5      // The ESP8266 pin connected to the momentary switch
 #define STATUS_LED D4      // Status LED for WiFi connection feedback
 
-// Replace the hardcoded version with the macro
 const String current_version = VERSION;
 const String api_url = "https://api.github.com/repos/SWhardfish/ESP8266-LED-OTA/releases/latest"; // GitHub API for latest release
 const char *firmware_url = "https://github.com/SWhardfish/ESP8266-LED-OTA/releases/latest/download/firmware.bin"; // URL to firmware binary
@@ -48,9 +44,7 @@ const int morningOffMinute = 0;
 const int eveningOffHour = 23;
 const int eveningOffMinute = 30;
 
-// Simplified sunset time for Stockholm (approximation)
 int getSunsetHour() {
-    // Use a fixed sunset time for simplicity (can be adjusted seasonally)
     return 17; // 5 PM
 }
 
@@ -72,7 +66,6 @@ void loadConfig() {
         return;
     }
 
-    // Read file and parse JSON
     DynamicJsonDocument doc(256);
     DeserializationError error = deserializeJson(doc, configFile);
     if (error) {
@@ -87,6 +80,51 @@ void loadConfig() {
     Serial.println("SSID: " + ssid);
 
     configFile.close();
+}
+
+void saveConfig() {
+    DynamicJsonDocument doc(256);
+    doc["ssid"] = ssid;
+    doc["password"] = password;
+
+    File configFile = LittleFS.open("/config.json", "w");
+    if (!configFile) {
+        Serial.println("Failed to open config file for writing");
+        return;
+    }
+
+    serializeJson(doc, configFile);
+    configFile.close();
+    Serial.println("WiFi Config Saved");
+}
+
+void startAPMode() {
+    WiFi.softAP("ESP8266-Config");
+    Serial.println("Access Point Started");
+    Serial.println("IP Address: " + WiFi.softAPIP().toString());
+
+    server.on("/", HTTP_GET, []() {
+        String html = "<!DOCTYPE HTML><html><head><meta name='viewport' content='width=device-width, initial-scale=1'></head><body>";
+        html += "<h2>ESP8266 WiFi Configuration</h2>";
+        html += "<form method='post' action='/setwifi'>";
+        html += "SSID: <input type='text' name='ssid'><br>";
+        html += "Password: <input type='password' name='password'><br>";
+        html += "<input type='submit' value='Save'>";
+        html += "</form>";
+        html += "</body></html>";
+        server.send(200, "text/html", html);
+    });
+
+    server.on("/setwifi", HTTP_POST, []() {
+        ssid = server.arg("ssid");
+        password = server.arg("password");
+        saveConfig();
+        server.send(200, "text/plain", "WiFi credentials saved. Rebooting...");
+        delay(1000);
+        ESP.restart();
+    });
+
+    server.begin();
 }
 
 void connectWiFi() {
@@ -110,8 +148,8 @@ void connectWiFi() {
         Serial.println(WiFi.localIP());
         digitalWrite(STATUS_LED, LOW); // WiFi connected, turn LED off
     } else {
-        Serial.println("\nFailed to connect. Restarting...");
-        ESP.restart();
+        Serial.println("\nFailed to connect. Starting AP mode...");
+        startAPMode();
     }
 
     WiFi.setAutoReconnect(true);
@@ -154,7 +192,6 @@ void checkForUpdates() {
     Serial.println("Checking for firmware updates...");
     updateStatus = "Checking for firmware updates...";
 
-    // Remove previous OTA file if exists
     removePreviousOTAFile();
 
     std::unique_ptr<BearSSL::WiFiClientSecure> client(new BearSSL::WiFiClientSecure);
@@ -171,7 +208,6 @@ void checkForUpdates() {
     updateStatus += "<br>HTTP Response Code: " + String(httpCode);
 
     if (httpCode == HTTP_CODE_OK) {
-        // Parse JSON response
         String payload = http.getString();
         DynamicJsonDocument doc(2048);
         DeserializationError error = deserializeJson(doc, payload);
@@ -182,7 +218,6 @@ void checkForUpdates() {
             return;
         }
 
-        // Extract latest version and firmware URL
         String latest_version = doc["tag_name"].as<String>();
         String firmware_url = doc["assets"][0]["browser_download_url"].as<String>();
 
@@ -200,7 +235,6 @@ void checkForUpdates() {
             updateStatus += "<br>New version available! Updating...";
             updateStatus += "<br>Firmware URL: " + firmware_url;
 
-            // Manually download firmware
             http.end();
             http.begin(*client, firmware_url);
             http.setTimeout(20000);  // Set timeout for firmware download
@@ -213,7 +247,6 @@ void checkForUpdates() {
                     Serial.printf("Firmware size: %d bytes\n", contentLength);
                     updateStatus += "<br>Firmware size: " + String(contentLength) + " bytes";
 
-                    // Start OTA update
                     if (Update.begin(contentLength)) {
                         Serial.println("Starting OTA update...");
                         updateStatus += "<br>Starting OTA update...";
@@ -255,58 +288,6 @@ void checkForUpdates() {
     }
 
     http.end();
-}
-
-// File upload handler
-void handleFileUpload() {
-    HTTPUpload& upload = server.upload();
-    static File file;
-
-    if (upload.status == UPLOAD_FILE_START) {
-        // Open the file for writing in LittleFS
-        String filename = upload.filename;
-        if (!filename.startsWith("/")) {
-            filename = "/" + filename;
-        }
-        Serial.printf("Uploading file: %s\n", filename.c_str());
-        file = LittleFS.open(filename, "w");
-        if (!file) {
-            Serial.println("Failed to open file for writing");
-            return;
-        }
-    } else if (upload.status == UPLOAD_FILE_WRITE) {
-        // Write the received data to the file
-        if (file) {
-            size_t written = file.write(upload.buf, upload.currentSize);
-            if (written != upload.currentSize) {
-                Serial.println("Write failed");
-            }
-        }
-    } else if (upload.status == UPLOAD_FILE_END) {
-        // Close the file
-        if (file) {
-            file.close();
-            Serial.printf("Upload complete: %s, size: %d\n", upload.filename.c_str(), upload.totalSize);
-            server.send(200, "text/plain", "File uploaded successfully!");
-        } else {
-            server.send(500, "text/plain", "File upload failed!");
-        }
-    }
-}
-
-// File listing handler
-void handleFileList() {
-    String html = "<!DOCTYPE HTML><html><head><meta name='viewport' content='width=device-width, initial-scale=1'></head><body>";
-    html += "<h2>Files in LittleFS</h2>";
-    html += "<ul>";
-    Dir dir = LittleFS.openDir("/");
-    while (dir.next()) {
-        html += "<li>" + dir.fileName() + " (" + dir.fileSize() + " bytes)</li>";
-    }
-    html += "</ul>";
-    html += "<a href='/'>Back to main page</a>";
-    html += "</body></html>";
-    server.send(200, "text/html", html);
 }
 
 String getHTML() {
@@ -351,10 +332,6 @@ String getHTML() {
     html += "<p>Current Time: " + timeClient.getFormattedTime() + "</p>";
     html += "<p>" + updateStatus + "</p>";
     html += "<p>" + rebootStatus + "</p>";
-    html += "<form method='post' enctype='multipart/form-data' action='/upload'>";
-    html += "<input type='file' name='file' accept='.json'>";
-    html += "<input type='submit' class='button' value='Upload config.json'>";
-    html += "</form>";
     html += "<a href='/files'>View files in LittleFS</a>";
     html += "</body></html>";
 
@@ -365,32 +342,21 @@ void setup() {
     Serial.begin(115200);
     delay(1000);
 
-    // Step 1: Check if LittleFS mounts correctly
     if (!LittleFS.begin()) {
         Serial.println("Failed to mount LittleFS!");
-        return;  // Stop execution if filesystem is not available
+        return;
     } else {
         Serial.println("LittleFS mounted successfully.");
     }
 
-    // Step 2: Check if config.json exists before opening
     if (!LittleFS.exists("/config.json")) {
-        Serial.println("Config file missing! Please enter Wi-Fi credentials:");
-        Serial.println("Enter SSID:");
-        while (!Serial.available()) {}
-        ssid = Serial.readStringUntil('\n');
-        Serial.println("Enter Password:");
-        while (!Serial.available()) {}
-        password = Serial.readStringUntil('\n');
-
-        Serial.println("Using temporary Wi-Fi credentials:");
-        Serial.println("SSID: " + ssid);
-        Serial.println("Password: " + password);
+        Serial.println("Config file missing! Starting AP mode...");
+        startAPMode();
     } else {
-        loadConfig();  // Load WiFi credentials from file
+        loadConfig();
+        connectWiFi();
     }
 
-    connectWiFi();
     startOTA();
     timeClient.begin();
 
@@ -424,21 +390,14 @@ void setup() {
         server.send(200, "text/html", getHTML());
     });
 
-    server.on("/upload", HTTP_POST, []() {
-        server.send(200, "text/plain", "File uploaded successfully!");
-    }, handleFileUpload);
-
-    server.on("/files", HTTP_GET, handleFileList);
-
     server.begin();
 }
 
 void loop() {
     server.handleClient();
     ArduinoOTA.handle();
-    timeClient.update(); // Update NTP time
+    timeClient.update();
 
-    // Handle momentary switch
     int reading = digitalRead(SWITCH_PIN);
     if (reading != lastSwitchState) {
         lastDebounceTime = millis();
@@ -456,7 +415,6 @@ void loop() {
     }
     lastSwitchState = reading;
 
-    // Handle daily reboot
     if (timeClient.getHours() == rebootHour && timeClient.getMinutes() == rebootMinute) {
         if (!rebootTriggered) {
             Serial.println("Reboot time reached. Rebooting...");
@@ -467,11 +425,9 @@ void loop() {
         rebootTriggered = false;
     }
 
-    // Handle LED schedule
     int currentHour = timeClient.getHours();
     int currentMinute = timeClient.getMinutes();
 
-    // Morning schedule: Turn on at 06:30, turn off at 09:00
     if (currentHour == morningOnHour && currentMinute == morningOnMinute) {
         digitalWrite(LED_PIN, HIGH);
         LED_state = HIGH;
@@ -483,7 +439,6 @@ void loop() {
         Serial.println("LED turned OFF (morning schedule)");
     }
 
-    // Evening schedule: Turn on 1 hour before sunset, turn off at 23:30
     int sunsetHour = getSunsetHour();
     if (currentHour == (sunsetHour - 1) && currentMinute == 0) {
         digitalWrite(LED_PIN, HIGH);
