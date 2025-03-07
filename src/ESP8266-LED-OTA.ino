@@ -14,6 +14,8 @@
 #define SWITCH_PIN D5      // The ESP8266 pin connected to the momentary switch
 #define STATUS_LED D4      // Status LED for WiFi connection feedback
 
+#define VERSION "1.0.0"  // Define the version number
+
 const String current_version = VERSION;
 const String api_url = "https://api.github.com/repos/SWhardfish/ESP8266-LED-OTA/releases/latest"; // GitHub API for latest release
 const char *firmware_url = "https://github.com/SWhardfish/ESP8266-LED-OTA/releases/latest/download/firmware.bin"; // URL to firmware binary
@@ -43,6 +45,12 @@ const int morningOffHour = 9;
 const int morningOffMinute = 0;
 const int eveningOffHour = 23;
 const int eveningOffMinute = 30;
+
+// Status LED variables
+unsigned long previousMillis = 0;
+const long wifiBlinkInterval = 500;  // Blink interval for WiFi connection (500ms)
+const long apBlinkInterval = 1000;  // Blink interval for AP mode (1000ms)
+bool statusLedState = LOW;
 
 int getSunsetHour() {
     return 17; // 5 PM
@@ -99,22 +107,16 @@ void saveConfig() {
 }
 
 void startAPMode() {
-    WiFi.softAP("ESP8266-Config");
+    WiFi.softAP("ESP8266-Config");  // Start AP with SSID "ESP8266-Config"
     Serial.println("Access Point Started");
     Serial.println("IP Address: " + WiFi.softAPIP().toString());
 
+    // Serve the configuration page
     server.on("/", HTTP_GET, []() {
-        String html = "<!DOCTYPE HTML><html><head><meta name='viewport' content='width=device-width, initial-scale=1'></head><body>";
-        html += "<h2>ESP8266 WiFi Configuration</h2>";
-        html += "<form method='post' action='/setwifi'>";
-        html += "SSID: <input type='text' name='ssid'><br>";
-        html += "Password: <input type='password' name='password'><br>";
-        html += "<input type='submit' value='Save'>";
-        html += "</form>";
-        html += "</body></html>";
-        server.send(200, "text/html", html);
+        server.send(200, "text/html", getHTML());
     });
 
+    // Handle form submission for /setwifi
     server.on("/setwifi", HTTP_POST, []() {
         ssid = server.arg("ssid");
         password = server.arg("password");
@@ -124,7 +126,18 @@ void startAPMode() {
         ESP.restart();
     });
 
-    server.begin();
+    server.begin();  // Start the web server
+
+    // Give some time to establish AP mode connection
+    unsigned long startTime = millis();
+    while (millis() - startTime < 120000) {  // Allow AP mode for 120 seconds
+        server.handleClient();  // Process requests
+        delay(100);  // Delay to allow for AP mode to be active
+    }
+
+    // After timeout, attempt to reconnect to WiFi
+    Serial.println("Timeout reached in AP mode, retrying WiFi connection...");
+    connectWiFi();  // Try connecting to WiFi again
 }
 
 void connectWiFi() {
@@ -147,13 +160,13 @@ void connectWiFi() {
         Serial.print("IP Address: ");
         Serial.println(WiFi.localIP());
         digitalWrite(STATUS_LED, LOW); // WiFi connected, turn LED off
+        // Start server here, only after successful WiFi connection
+        setupRoutes();
+        server.begin();  // Start the web server
     } else {
         Serial.println("\nFailed to connect. Starting AP mode...");
-        startAPMode();
+        startAPMode(); // If WiFi connection fails, start AP mode
     }
-
-    WiFi.setAutoReconnect(true);
-    WiFi.persistent(true);
 }
 
 void startOTA() {
@@ -295,7 +308,7 @@ String getHTML() {
     html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
     html += "<style>";
     html += "body{text-align:center;font-family:Arial;}";
-    html += ".button{padding:10px 20px;font-size:18px;display:inline-block;margin:10px;border:none;background:blue;color:white;cursor:pointer;border-radius:10px;}";
+    html += ".button{padding:10px 20px;font-size:18px;display:inline-block;margin:10px;border:none;background:blue;color:white;cursor:pointer;border-radius:10px;width:150px;}"; // Limited width
     html += ".button-container{display:flex;flex-wrap:wrap;justify-content:center;}";
     html += ".button-container a{flex:1 1 45%;margin:5px;}";
     html += ".schedule{text-align:left;margin:20px auto;width:80%;max-width:400px;padding:10px;border:1px solid #ccc;border-radius:10px;}";
@@ -305,16 +318,17 @@ String getHTML() {
     html += "</style></head><body>";
 
     html += "<h2>ESP8266 Web Server WITH OTA " + current_version + "</h2>";
-    html += "<p>LED state: <strong style='color: red;'>";
+    html += "<p>LED state: <strong id='ledState' style='color: red;'>";
     html += (LED_state == LOW) ? "OFF" : "ON";
     html += "</strong></p>";
     html += "<div class='button-container'>";
-    html += "<a class='button' href='/led1/on'>Turn ON</a>";
-    html += "<a class='button' href='/led1/off'>Turn OFF</a>";
+    html += "<a class='button' href='#' onclick='sendRequest(\"/led1/on\")'>Turn ON</a>";
+    html += "<a class='button' href='#' onclick='sendRequest(\"/led1/off\")'>Turn OFF</a>";
     html += "</div>";
     html += "<div class='button-container'>";
-    html += "<a class='button' href='/reboot'>Reboot</a>";
-    html += "<a class='button' href='/update'>Check for Update</a>";
+    html += "<a class='button' href='#' onclick='sendRequest(\"/reboot\")'>Reboot</a>";
+    html += "<a class='button' href='#' onclick='sendRequest(\"/update\")'>Check for Update</a>";
+    html += "<a class='button' href='#' onclick='sendRequest(\"/apmode\")'>Force AP Mode</a>";
     html += "</div>";
     html += "<div class='schedule'>";
     html += "<h3>Reboot Schedule</h3>";
@@ -332,15 +346,90 @@ String getHTML() {
     html += "<p>Current Time: " + timeClient.getFormattedTime() + "</p>";
     html += "<p>" + updateStatus + "</p>";
     html += "<p>" + rebootStatus + "</p>";
-    html += "<a href='/files'>View files in LittleFS</a>";
+
+    // Add WiFi configuration form at the bottom
+    html += "<h3>WiFi Configuration</h3>";
+    html += "<form method='post' action='/setwifi'>";
+    html += "SSID: <input type='text' name='ssid'><br>";
+    html += "Password: <input type='password' name='password'><br>";
+    html += "<input type='submit' value='Save'>";
+    html += "</form>";
+
+    html += "<script>";
+    html += "function sendRequest(url) {";
+    html += "  var xhr = new XMLHttpRequest();";
+    html += "  xhr.open('GET', url, true);";
+    html += "  xhr.onload = function() {";
+    html += "    if (xhr.status == 200) {";
+    html += "      if (url.includes('led1')) {";
+    html += "        document.getElementById('ledState').innerText = url.includes('on') ? 'ON' : 'OFF';";
+    html += "      }";
+    html += "    }";
+    html += "  };";
+    html += "  xhr.send();";
+    html += "}";
+    html += "</script>";
     html += "</body></html>";
 
     return html;
 }
 
+void setupRoutes() {
+    // Serve the main webpage
+    server.on("/", HTTP_GET, []() {
+        server.send(200, "text/html", getHTML());
+    });
+
+    // Handle form submission for /setwifi
+    server.on("/setwifi", HTTP_POST, []() {
+        ssid = server.arg("ssid");
+        password = server.arg("password");
+        saveConfig();
+        server.send(200, "text/plain", "WiFi credentials saved. Rebooting...");
+        delay(1000);
+        ESP.restart();
+    });
+
+    // Other routes
+    server.on("/led1/on", HTTP_GET, []() {
+        LED_state = HIGH;
+        digitalWrite(LED_PIN, LED_state);
+        Serial.println("LED turned ON");
+        server.send(200, "text/plain", "ON");
+    });
+
+    server.on("/led1/off", HTTP_GET, []() {
+        LED_state = LOW;
+        digitalWrite(LED_PIN, LED_state);
+        Serial.println("LED turned OFF");
+        server.send(200, "text/plain", "OFF");
+    });
+
+    server.on("/reboot", HTTP_GET, []() {
+        rebootStatus = "Rebooting...";
+        server.send(200, "text/plain", "Rebooting...");
+        delay(1000);
+        ESP.restart();
+    });
+
+    server.on("/update", HTTP_GET, []() {
+        checkForUpdates();
+        server.send(200, "text/plain", updateStatus);
+    });
+
+    server.on("/apmode", HTTP_GET, []() {
+        server.send(200, "text/plain", "Forcing AP Mode...");
+        delay(1000);
+        startAPMode();
+    });
+}
+
 void setup() {
     Serial.begin(115200);
     delay(1000);
+
+    pinMode(STATUS_LED, OUTPUT);
+    digitalWrite(STATUS_LED, LOW);  // Initialize STATUS_LED
 
     if (!LittleFS.begin()) {
         Serial.println("Failed to mount LittleFS!");
@@ -360,44 +449,38 @@ void setup() {
     startOTA();
     timeClient.begin();
 
-    server.on("/", HTTP_GET, []() {
-        server.send(200, "text/html", getHTML());
-    });
-
-    server.on("/led1/on", HTTP_GET, []() {
-        LED_state = HIGH;
-        digitalWrite(LED_PIN, LED_state);
-        Serial.println("LED turned ON");
-        server.send(200, "text/html", getHTML());
-    });
-
-    server.on("/led1/off", HTTP_GET, []() {
-        LED_state = LOW;
-        digitalWrite(LED_PIN, LED_state);
-        Serial.println("LED turned OFF");
-        server.send(200, "text/html", getHTML());
-    });
-
-    server.on("/reboot", HTTP_GET, []() {
-        rebootStatus = "Rebooting...";
-        server.send(200, "text/html", getHTML());
-        delay(1000);
-        ESP.restart();
-    });
-
-    server.on("/update", HTTP_GET, []() {
-        checkForUpdates();
-        server.send(200, "text/html", getHTML());
-    });
-
-    server.begin();
+    // Always setup the routes first
+    setupRoutes();
+    server.begin(); // Start the web server
 }
 
 void loop() {
-    server.handleClient();
+    server.handleClient();  // Always handle requests
+
     ArduinoOTA.handle();
     timeClient.update();
 
+    // Handle STATUS_LED blinking based on WiFi mode
+    unsigned long currentMillis = millis();
+    if (WiFi.status() == WL_CONNECTED) {
+        digitalWrite(STATUS_LED, LOW);  // Constant on when connected
+    } else if (WiFi.getMode() == WIFI_AP) {
+        // Slow blink in AP mode
+        if (currentMillis - previousMillis >= apBlinkInterval) {
+            previousMillis = currentMillis;
+            statusLedState = !statusLedState;
+            digitalWrite(STATUS_LED, statusLedState);
+        }
+    } else {
+        // Fast blink when trying to connect
+        if (currentMillis - previousMillis >= wifiBlinkInterval) {
+            previousMillis = currentMillis;
+            statusLedState = !statusLedState;
+            digitalWrite(STATUS_LED, statusLedState);
+        }
+    }
+
+    // Button handling logic here
     int reading = digitalRead(SWITCH_PIN);
     if (reading != lastSwitchState) {
         lastDebounceTime = millis();
@@ -415,6 +498,7 @@ void loop() {
     }
     lastSwitchState = reading;
 
+    // Check if it's reboot time
     if (timeClient.getHours() == rebootHour && timeClient.getMinutes() == rebootMinute) {
         if (!rebootTriggered) {
             Serial.println("Reboot time reached. Rebooting...");
@@ -451,8 +535,8 @@ void loop() {
         Serial.println("LED turned OFF (evening schedule)");
     }
 
-    if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("Lost WiFi connection! Reconnecting...");
-        connectWiFi();
+    if (WiFi.status() != WL_CONNECTED && WiFi.getMode() != WIFI_AP) {
+        Serial.println("Lost WiFi connection! Starting AP mode...");
+        startAPMode();
     }
 }
