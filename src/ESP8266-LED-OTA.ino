@@ -317,7 +317,7 @@ String getHTML() {
     html += ".schedule li{margin:5px 0;}";
     html += "</style></head><body>";
 
-    html += "<h2>ESP8266 Web Server WITH OTA " + current_version + "</h2>";
+    html += "<h2>ESP8266 Web Server WITH OTA X " + current_version + "</h2>";
     html += "<p>LED state: <strong id='ledState' style='color: red;'>";
     html += (LED_state == LOW) ? "OFF" : "ON";
     html += "</strong></p>";
