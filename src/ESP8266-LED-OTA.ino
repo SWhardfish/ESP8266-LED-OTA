@@ -210,94 +210,107 @@ void checkForUpdates() {
     std::unique_ptr<BearSSL::WiFiClientSecure> client(new BearSSL::WiFiClientSecure);
     HTTPClient http;
 
-    client->setInsecure();  // Bypass SSL certificate verification
+    client->setInsecure();  // Ignore SSL validation
     http.begin(*client, api_url);
-    http.setTimeout(20000);  // 20-second timeout
-    http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);  // Ensure redirect handling
+    http.setTimeout(20000);
 
     int httpCode = http.GET();
-    Serial.print("HTTP Response Code: ");
-    Serial.println(httpCode);
+    Serial.printf("HTTP Response Code: %d\n", httpCode);
     updateStatus += "<br>HTTP Response Code: " + String(httpCode);
 
-    if (httpCode == HTTP_CODE_OK) {
-        String payload = http.getString();
-        DynamicJsonDocument doc(2048);
-        DeserializationError error = deserializeJson(doc, payload);
+    if (httpCode != HTTP_CODE_OK) {
+        Serial.println("Failed to check version!");
+        updateStatus += "<br>Failed to check version!";
+        http.end();
+        return;
+    }
 
-        if (error) {
-            Serial.println("Failed to parse JSON");
-            updateStatus += "<br>Failed to parse JSON";
-            return;
-        }
+    // Stream JSON Parsing (Reduces Memory Usage)
+    DynamicJsonDocument doc(1024);
+    DeserializationError error = deserializeJson(doc, http.getStream());
+    http.end();  // Free memory **before** downloading firmware
 
-        String latest_version = doc["tag_name"].as<String>();
-        String firmware_url = doc["assets"][0]["browser_download_url"].as<String>();
+    if (error) {
+        Serial.println("JSON Parse Failed!");
+        updateStatus += "<br>JSON Parse Failed!";
+        return;
+    }
 
-        Serial.print("Latest version: ");
-        Serial.println(latest_version);
-        Serial.print("Current version: ");
-        Serial.println(current_version);
-        updateStatus += "<br>Latest version: " + latest_version;
-        updateStatus += "<br>Current version: " + current_version;
+    String latest_version = doc["tag_name"].as<String>();
+    String firmware_url = doc["assets"][0]["browser_download_url"].as<String>();
 
-        if (latest_version != current_version) {
-            Serial.println("New version available! Updating...");
-            Serial.print("Firmware URL: ");
-            Serial.println(firmware_url);
-            updateStatus += "<br>New version available! Updating...";
-            updateStatus += "<br>Firmware URL: " + firmware_url;
+    Serial.printf("Latest: %s | Current: %s\n", latest_version.c_str(), current_version.c_str());
+    updateStatus += "<br>Latest version: " + latest_version;
+    updateStatus += "<br>Current version: " + current_version;
 
-            http.end();
-            http.begin(*client, firmware_url);
-            http.setTimeout(20000);  // Set timeout for firmware download
+    if (latest_version == current_version) {
+        Serial.println("Already up to date.");
+        updateStatus += "<br>Already up to date.";
+        return;
+    }
 
-            int firmwareHttpCode = http.GET();
-            if (firmwareHttpCode == HTTP_CODE_OK) {
-                WiFiClient& stream = http.getStream();  // Corrected type
-                size_t contentLength = http.getSize();
-                if (contentLength > 0) {
-                    Serial.printf("Firmware size: %d bytes\n", contentLength);
-                    updateStatus += "<br>Firmware size: " + String(contentLength) + " bytes";
+    Serial.println("New version found! Starting update...");
+    updateStatus += "<br>New version found! Starting update...";
 
-                    if (Update.begin(contentLength)) {
-                        Serial.println("Starting OTA update...");
-                        updateStatus += "<br>Starting OTA update...";
-                        size_t written = Update.writeStream(stream);
-                        if (written == contentLength) {
-                            Serial.println("Firmware successfully written, finishing update...");
-                            updateStatus += "<br>Firmware successfully written, finishing update...";
-                            if (Update.end()) {
-                                Serial.println("Update complete! Rebooting...");
-                                updateStatus += "<br>Update complete! Rebooting...";
-                                ESP.restart();
-                            } else {
-                                Serial.printf("Update failed! Error: %s\n", Update.getErrorString().c_str());
-                                updateStatus += "<br>Update failed! Error: " + String(Update.getErrorString().c_str());
-                            }
-                        } else {
-                            Serial.printf("Firmware write failed! Only wrote %d of %d bytes\n", written, contentLength);
-                            updateStatus += "<br>Firmware write failed! Only wrote " + String(written) + " of " + String(contentLength) + " bytes";
-                        }
-                    } else {
-                        Serial.println("Not enough space for OTA update.");
-                        updateStatus += "<br>Not enough space for OTA update.";
-                    }
-                } else {
-                    Serial.println("Firmware download error: Empty response");
-                    updateStatus += "<br>Firmware download error: Empty response";
-                }
-            } else {
-                Serial.printf("Failed to download firmware! HTTP Error: %d\n", firmwareHttpCode);
-                updateStatus += "<br>Failed to download firmware! HTTP Error: " + String(firmwareHttpCode);
+    // Download Firmware
+    http.begin(*client, firmware_url);
+    http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
+    http.setTimeout(20000);
+    int firmwareHttpCode = http.GET();
+
+    if (firmwareHttpCode != HTTP_CODE_OK) {
+        Serial.printf("Firmware download failed! HTTP Error: %d\n", firmwareHttpCode);
+        updateStatus += "<br>Firmware download failed!";
+        http.end();
+        return;
+    }
+
+    WiFiClient& stream = http.getStream();
+    size_t contentLength = http.getSize();
+
+    if (contentLength <= 0) {
+        Serial.println("Invalid firmware size!");
+        updateStatus += "<br>Invalid firmware size!";
+        http.end();
+        return;
+    }
+
+    Serial.printf("Firmware Size: %d bytes\n", contentLength);
+    updateStatus += "<br>Firmware Size: " + String(contentLength) + " bytes";
+
+    if (!Update.begin(contentLength)) {
+        Serial.println("Not enough space for update!");
+        updateStatus += "<br>Not enough space for update!";
+        http.end();
+        return;
+    }
+
+    // **Download in Chunks to Avoid OOM**
+    Serial.println("Updating firmware...");
+    updateStatus += "<br>Updating firmware...";
+    uint8_t buff[512]; // Small buffer (Adjustable: 512 - 1024)
+    size_t written = 0;
+
+    while (written < contentLength) {
+        size_t available = stream.available();
+        if (available) {
+            size_t chunkSize = min(available, sizeof(buff));
+            int bytesRead = stream.readBytes(buff, chunkSize);
+            if (bytesRead > 0) {
+                Update.write(buff, bytesRead);
+                written += bytesRead;
+                Serial.printf("Progress: %d/%d bytes\n", written, contentLength);
             }
-        } else {
-            Serial.println("Firmware is up to date.");
-            updateStatus += "<br>Firmware is up to date.";
         }
+    }
+
+    if (!Update.end()) {
+        Serial.printf("Update failed! Error: %s\n", Update.getErrorString().c_str());
+        updateStatus += "<br>Update failed!";
     } else {
-        Serial.printf("Failed to check version! HTTP error: %d\n", httpCode);
-        updateStatus += "<br>Failed to check version! HTTP error: " + String(httpCode);
+        Serial.println("Update complete! Rebooting...");
+        updateStatus += "<br>Update complete! Rebooting...";
+        ESP.restart();
     }
 
     http.end();
@@ -317,7 +330,7 @@ String getHTML() {
     html += ".schedule li{margin:5px 0;}";
     html += "</style></head><body>";
 
-    html += "<h2>ESP8266 Web Server WITH OTA X " + current_version + "</h2>";
+    html += "<h2>ESP8266 Web Server WITH OTA 8MARCH " + current_version + "</h2>";
     html += "<p>LED state: <strong id='ledState' style='color: red;'>";
     html += (LED_state == LOW) ? "OFF" : "ON";
     html += "</strong></p>";
