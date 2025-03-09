@@ -325,7 +325,7 @@ String getHTML() {
     html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
     html += "<style>";
     html += "body{text-align:center;font-family:Arial;}";
-    html += ".button{padding:10px 20px;font-size:18px;display:inline-block;margin:10px;border:none;background:blue;color:white;cursor:pointer;border-radius:10px;width:150px;}"; // Limited width
+    html += ".button{padding:20px 20px;font-size:18px;display:inline-block;margin:10px;border:none;background:blue;color:white;cursor:pointer;border-radius:10px;width:40px;}"; // Limited width
     html += ".button-container{display:flex;flex-wrap:wrap;justify-content:center;}";
     html += ".button-container a{flex:1 1 45%;margin:5px;}";
     html += ".schedule{text-align:left;margin:20px auto;width:80%;max-width:400px;padding:10px;border:1px solid #ccc;border-radius:10px;}";
