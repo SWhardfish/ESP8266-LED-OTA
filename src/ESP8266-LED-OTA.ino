@@ -322,65 +322,56 @@ void checkForUpdates() {
 
 String getHTML() {
     String html = "<!DOCTYPE HTML><html><head>";
-    html += "<meta charset='UTF-8'>";
-    html += "<meta name='viewport' content='width=device-width, initial-scale=1.0'>";
+    html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
     html += "<style>";
-    html += "body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 0;";
-    html += "background-image: url('https://wallpapersok.com/images/high/illustration-of-millenium-falcon-in-star-wars-cell-phone-cesjxv8vam4s0sb5.webp'); ";
-    html += "background-size: cover; background-position: center; display: flex; flex-direction: column; height: 100vh; justify-content: space-between; }";
-    html += "h1 { color: black; margin: 20px; text-shadow: 2px 2px 5px #000; }";
-    html += ".button { margin: 10px; width: 120px; height: 50px; font-size: 16px; color: white; border: none; border-radius: 10px; cursor: pointer; display: inline-block; }";
-    html += ".on { background-color: green; }";
-    html += ".off { background-color: red; }";
-    html += ".button:active { transform: scale(0.95); }";
-    html += ".reboot { background-color: lightgreen; color: black; }";
-    html += ".reboot:hover { background-color: #90ee90; }";
-    html += ".button-container { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 20px; }";
-    html += ".button-container .button { margin: 10px; }";
-    html += ".section { background-color: #f0f0f0; padding: 15px; border-radius: 10px; margin: 20px auto; width: 80%; text-align: center; }";
-    html += ".wifi-container { display: flex; flex-direction: column; align-items: center; }";
-    html += ".wifi-form { display: flex; flex-direction: column; align-items: center; width: 50%; }";
-    html += ".wifi-form label { margin-bottom: 10px; text-align: left; width: 100%; }";
-    html += ".wifi-form input { width: 100%; padding: 8px; margin-top: 5px; }";
+    html += "body{text-align:center;font-family:Arial;background-color:rgba(255,255,255,0.8);padding:20px;}
+    html += ".button{padding:10px 20px;font-size:18px;display:inline-block;margin:10px;border:none;background:blue;color:white;cursor:pointer;border-radius:10px;width:150px;}";
+    html += ".button-container{display:flex;flex-wrap:wrap;justify-content:center;}";
+    html += ".button-container a{flex:1 1 45%;margin:5px;}";
+    html += ".schedule, .log, .wifi-container{text-align:left;margin:20px auto;width:80%;max-width:400px;padding:10px;border:1px solid #ccc;border-radius:10px;background:white;}";
+    html += ".schedule h3, .log h3, .wifi-container h3{text-align:center;}";
+    html += ".schedule ul, .log ul{list-style-type:none;padding:0;}";
+    html += ".schedule li, .log li{margin:5px 0;}";
+    html += ".wifi-form{display:flex;flex-direction:column;text-align:left;}";
+    html += ".wifi-form label{margin-bottom:10px;font-weight:bold;}";
+    html += ".wifi-form input{width:100%;padding:5px;margin-bottom:10px;border:1px solid #ccc;border-radius:5px;}";
     html += "</style></head><body>";
 
-    html += "<h1>ESP8266 Web Server WITH OTA " + current_version + "</h1>";
-
-    html += "<div class='section'>";
-    html += "<p>LED state: <strong id='ledState' style='color: red;'>" + String(LED_state ? "ON" : "OFF") + "</strong></p>";
+    html += "<h2>ESP8266 Web Server WITH OTA " + current_version + "</h2>";
     html += "<div class='button-container'>";
-    html += "<button class='button " + String(LED_state ? "on" : "off") + "' onclick=\"sendRequest('/led1/on')\">Turn ON</button>";
-    html += "<button class='button " + String(!LED_state ? "on" : "off") + "' onclick=\"sendRequest('/led1/off')\">Turn OFF</button>";
-    html += "</div></div>";
-
-    html += "<div class='button-container'>";
-    html += "<button class='button reboot' onclick=\"sendRequest('/reboot')\">Reboot</button>";
-    html += "<button class='button' onclick=\"sendRequest('/update')\">Check for Update</button>";
-    html += "<button class='button' onclick=\"sendRequest('/apmode')\">Force AP Mode</button>";
+    html += "<p><strong>LED State: </strong><span id='ledState' style='color: red; font-weight:bold;'></span></p>";
+    html += "<a class='button' href='#' onclick='sendRequest(\"/led1/on\")'>Turn ON</a>";
+    html += "<a class='button' href='#' onclick='sendRequest(\"/led1/off\")'>Turn OFF</a>";
     html += "</div>";
 
-    html += "<div class='section'>";
+    html += "<div class='button-container'>";
+    html += "<a class='button' href='#' onclick='sendRequest(\"/reboot\")'>Reboot</a>";
+    html += "<a class='button' href='#' onclick='sendRequest(\"/update\")'>Check for Update</a>";
+    html += "<a class='button' href='#' onclick='sendRequest(\"/apmode\")'>Force AP Mode</a>";
+    html += "</div>";
+
+    html += "<div class='schedule'>";
     html += "<h3>LED Schedule</h3>";
     html += "<ul>";
-    html += "<li>Morning ON: " + String(morningOnHour) + ":" + String(morningOnMinute < 10 ? "0" : "") + String(morningOnMinute) + "</li>";
-    html += "<li>Morning OFF: " + String(morningOffHour) + ":" + String(morningOffMinute < 10 ? "0" : "") + String(morningOffMinute) + "</li>";
-    html += "<li>Evening OFF: " + String(eveningOffHour) + ":" + String(eveningOffMinute < 10 ? "0" : "") + String(eveningOffMinute) + "</li>";
+    html += "<li>Morning ON: " + String(morningOnHour) + ":" + (morningOnMinute < 10 ? "0" : "") + String(morningOnMinute) + "</li>";
+    html += "<li>Morning OFF: " + String(morningOffHour) + ":" + (morningOffMinute < 10 ? "0" : "") + String(morningOffMinute) + "</li>";
+    html += "<li>Evening OFF: " + String(eveningOffHour) + ":" + (eveningOffMinute < 10 ? "0" : "") + String(eveningOffMinute) + "</li>";
     html += "<li>Sunset Time: " + String(getSunsetHour()) + ":00</li>";
     html += "</ul></div>";
 
-    html += "<div class='section'>";
-    html += "<a href='/viewlog' style='display:block;margin:20px;'>View Wi-Fi Log</a>";
+    html += "<div class='log'>";
+    html += "<h3>Wi-Fi Log</h3>";
+    html += "<a href='/viewlog'>View Wi-Fi Log</a>";
     html += "</div>";
 
-    html += "<div class='section'>";
-    html += "<h3>WiFi Configuration</h3>";
     html += "<div class='wifi-container'>";
-    html += "  <form method='post' action='/setwifi' class='wifi-form'>";
-    html += "    <label>SSID: <input type='text' name='ssid'></label>";
-    html += "    <label>Password: <input type='password' name='password'></label>";
-    html += "    <input type='submit' value='Save' style='margin-top: 10px;'>";
-    html += "  </form>";
-    html += "</div></div>";
+    html += "<h3>WiFi Configuration</h3>";
+    html += "<form method='post' action='/setwifi' class='wifi-form'>";
+    html += "<label>SSID:</label><input type='text' name='ssid'>";
+    html += "<label>Password:</label><input type='password' name='password'>";
+    html += "<input type='submit' value='Save'>";
+    html += "</form>";
+    html += "</div>";
 
     html += "<script>";
     html += "function sendRequest(url) {";
@@ -400,6 +391,7 @@ String getHTML() {
 
     return html;
 }
+
 
 void setupRoutes() {
     // Serve the main webpage
