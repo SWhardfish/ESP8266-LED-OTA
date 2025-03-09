@@ -324,7 +324,7 @@ String getHTML() {
     String html = "<!DOCTYPE HTML><html><head>";
     html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
     html += "<style>";
-    html += "body{text-align:center;font-family:Arial;background-color:rgba(255,255,255,0.8);padding:20px;}
+    html += "body{text-align:center;font-family:Arial;background-color:rgba(255,255,255,0.8);padding:20px;}";
     html += ".button{padding:10px 20px;font-size:18px;display:inline-block;margin:10px;border:none;background:blue;color:white;cursor:pointer;border-radius:10px;width:150px;}";
     html += ".button-container{display:flex;flex-wrap:wrap;justify-content:center;}";
     html += ".button-container a{flex:1 1 45%;margin:5px;}";
