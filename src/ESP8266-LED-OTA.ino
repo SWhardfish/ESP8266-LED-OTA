@@ -10,7 +10,7 @@
 #include <WiFiClientSecure.h>
 #include <WiFiClientSecureBearSSL.h>
 
-#define LED_PIN D4         // The ESP8266 pin connected to LED
+#define LED_PIN D6         // The ESP8266 pin connected to LED
 #define SWITCH_PIN D5      // The ESP8266 pin connected to the momentary switch
 #define STATUS_LED D4      // Status LED for WiFi connection feedback
 
@@ -236,6 +236,7 @@ void checkForUpdates() {
         return;
     }
 
+    // Extract version dynamically
     String latest_version = doc["tag_name"].as<String>();
     String firmware_url = doc["assets"][0]["browser_download_url"].as<String>();
 
@@ -243,7 +244,12 @@ void checkForUpdates() {
     updateStatus += "<br>Latest version: " + latest_version;
     updateStatus += "<br>Current version: " + current_version;
 
-    if (latest_version == current_version) {
+    // **Update the `current_version` to match the latest tag**
+    if (!latest_version.isEmpty()) {
+        current_version = latest_version;
+    }
+
+    if (latest_version == VERSION) {  // Compare with `VERSION`
         Serial.println("Already up to date.");
         updateStatus += "<br>Already up to date.";
         return;
@@ -330,7 +336,7 @@ String getHTML() {
     html += ".schedule li{margin:5px 0;}";
     html += "</style></head><body>";
 
-    html += "<h2>ESP8266 Web Server WITH OTA 8MARCH " + current_version + "</h2>";
+    html += "<h2>ESP8266 Web Server WITH OTA " + current_version + "</h2>";
     html += "<p>LED state: <strong id='ledState' style='color: red;'>";
     html += (LED_state == LOW) ? "OFF" : "ON";
     html += "</strong></p>";
