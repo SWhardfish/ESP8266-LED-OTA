@@ -337,15 +337,21 @@ String getHTML() {
     html += ".reboot:hover { background-color: #90ee90; }";
     html += ".button-container { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 20px; }";
     html += ".button-container .button { margin: 10px; }";
+    html += ".section { background-color: #f0f0f0; padding: 15px; border-radius: 10px; margin: 20px auto; width: 80%; text-align: center; }";
+    html += ".wifi-container { display: flex; flex-direction: column; align-items: center; }";
+    html += ".wifi-form { display: flex; flex-direction: column; align-items: center; width: 50%; }";
+    html += ".wifi-form label { margin-bottom: 10px; text-align: left; width: 100%; }";
+    html += ".wifi-form input { width: 100%; padding: 8px; margin-top: 5px; }";
     html += "</style></head><body>";
 
     html += "<h1>ESP8266 Web Server WITH OTA " + current_version + "</h1>";
-    html += "<p>LED state: <strong id='ledState' style='color: red;'>" + String(LED_state ? "ON" : "OFF") + "</strong></p>";
 
+    html += "<div class='section'>";
+    html += "<p>LED state: <strong id='ledState' style='color: red;'>" + String(LED_state ? "ON" : "OFF") + "</strong></p>";
     html += "<div class='button-container'>";
     html += "<button class='button " + String(LED_state ? "on" : "off") + "' onclick=\"sendRequest('/led1/on')\">Turn ON</button>";
     html += "<button class='button " + String(!LED_state ? "on" : "off") + "' onclick=\"sendRequest('/led1/off')\">Turn OFF</button>";
-    html += "</div>";
+    html += "</div></div>";
 
     html += "<div class='button-container'>";
     html += "<button class='button reboot' onclick=\"sendRequest('/reboot')\">Reboot</button>";
@@ -353,7 +359,7 @@ String getHTML() {
     html += "<button class='button' onclick=\"sendRequest('/apmode')\">Force AP Mode</button>";
     html += "</div>";
 
-    html += "<div class='schedule'>";
+    html += "<div class='section'>";
     html += "<h3>LED Schedule</h3>";
     html += "<ul>";
     html += "<li>Morning ON: " + String(morningOnHour) + ":" + String(morningOnMinute < 10 ? "0" : "") + String(morningOnMinute) + "</li>";
@@ -362,16 +368,19 @@ String getHTML() {
     html += "<li>Sunset Time: " + String(getSunsetHour()) + ":00</li>";
     html += "</ul></div>";
 
+    html += "<div class='section'>";
     html += "<a href='/viewlog' style='display:block;margin:20px;'>View Wi-Fi Log</a>";
+    html += "</div>";
 
-    html += "<h3 style='text-align: center;'>WiFi Configuration</h3>";
+    html += "<div class='section'>";
+    html += "<h3>WiFi Configuration</h3>";
     html += "<div class='wifi-container'>";
     html += "  <form method='post' action='/setwifi' class='wifi-form'>";
     html += "    <label>SSID: <input type='text' name='ssid'></label>";
     html += "    <label>Password: <input type='password' name='password'></label>";
     html += "    <input type='submit' value='Save' style='margin-top: 10px;'>";
     html += "  </form>";
-    html += "</div>";
+    html += "</div></div>";
 
     html += "<script>";
     html += "function sendRequest(url) {";
