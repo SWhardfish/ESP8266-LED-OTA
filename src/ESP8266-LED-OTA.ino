@@ -14,8 +14,6 @@
 #define SWITCH_PIN D5      // The ESP8266 pin connected to the momentary switch
 #define STATUS_LED D4      // Status LED for WiFi connection feedback
 
-//#define VERSION "1.0.0"  // Define the version number
-
 String current_version = VERSION;
 const String api_url = "https://api.github.com/repos/SWhardfish/ESP8266-LED-OTA/releases/latest"; // GitHub API for latest release
 const char *firmware_url = "https://github.com/SWhardfish/ESP8266-LED-OTA/releases/latest/download/firmware.bin"; // URL to firmware binary
@@ -367,11 +365,17 @@ String getHTML() {
     html += "<p>" + rebootStatus + "</p>";
 
     // Add WiFi configuration form at the bottom
+    html += "<style>";
+    html += "  .wifi-form { display: flex; flex-direction: column; max-width: 250px; }";
+    html += "  .wifi-form label { display: flex; justify-content: space-between; }";
+    html += "  .wifi-form input { width: 100%; margin-bottom: 10px; }";
+    html += "</style>";
+
     html += "<h3>WiFi Configuration</h3>";
-    html += "<form method='post' action='/setwifi'>";
-    html += "SSID: <input type='text' name='ssid'><br>";
-    html += "Password: <input type='password' name='password'><br>";
-    html += "<input type='submit' value='Save'>";
+    html += "<form method='post' action='/setwifi' class='wifi-form'>";
+    html += "  <label>SSID: <input type='text' name='ssid'></label>";
+    html += "  <label>Password: <input type='password' name='password'></label>";
+    html += "  <input type='submit' value='Save'>";
     html += "</form>";
 
     html += "<script>";
