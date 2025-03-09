@@ -366,17 +366,20 @@ String getHTML() {
 
     // Add WiFi configuration form at the bottom
     html += "<style>";
-    html += "  .wifi-form { display: flex; flex-direction: column; max-width: 250px; }";
-    html += "  .wifi-form label { display: flex; justify-content: space-between; }";
-    html += "  .wifi-form input { width: 100%; margin-bottom: 10px; }";
+    html += "  .wifi-container { display: flex; justify-content: center; }";
+    html += "  .wifi-form { display: flex; flex-direction: column; max-width: 300px; text-align: left; }";
+    html += "  .wifi-form label { display: flex; justify-content: space-between; margin-bottom: 10px; }";
+    html += "  .wifi-form input { width: 100%; }";
     html += "</style>";
 
-    html += "<h3>WiFi Configuration</h3>";
-    html += "<form method='post' action='/setwifi' class='wifi-form'>";
-    html += "  <label>SSID: <input type='text' name='ssid'></label>";
-    html += "  <label>Password: <input type='password' name='password'></label>";
-    html += "  <input type='submit' value='Save'>";
-    html += "</form>";
+    html += "<h3 style='text-align: center;'>WiFi Configuration</h3>";
+    html += "<div class='wifi-container'>";
+    html += "  <form method='post' action='/setwifi' class='wifi-form'>";
+    html += "    <label>SSID: <input type='text' name='ssid'></label>";
+    html += "    <label>Password: <input type='password' name='password'></label>";
+    html += "    <input type='submit' value='Save' style='margin-top: 10px;'>";
+    html += "  </form>";
+    html += "</div>";
 
     html += "<script>";
     html += "function sendRequest(url) {";
