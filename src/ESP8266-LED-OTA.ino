@@ -322,64 +322,36 @@ void checkForUpdates() {
 
 String getHTML() {
     String html = "<!DOCTYPE HTML><html><head>";
-    html += "<meta name='viewport' content='width=device-width, initial-scale=1'>";
+    html += "<meta charset='UTF-8'>";
+    html += "<meta name='viewport' content='width=device-width, initial-scale=1.0'>";
     html += "<style>";
-    html += "body{text-align:center;font-family:Arial;}";
-    html += ".button{padding:20px 20px;font-size:18px;display:inline-block;margin:10px;border:none;background:blue;color:white;cursor:pointer;border-radius:10px;width:10px;}"; // Limited width
-    html += ".button-container{display:flex;flex-wrap:wrap;justify-content:center;}";
-    html += ".button-container a{flex:1 1 45%;margin:5px;}";
-    html += ".schedule{text-align:left;margin:20px auto;width:80%;max-width:400px;padding:10px;border:1px solid #ccc;border-radius:10px;}";
-    html += ".schedule h3{margin:0 0 10px 0;}";
-    html += ".schedule ul{list-style-type:none;padding:0;}";
-    html += ".schedule li{margin:5px 0;}";
+    html += "body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 0;";
+    html += "background-image: url('https://wallpapersok.com/images/high/illustration-of-millenium-falcon-in-star-wars-cell-phone-cesjxv8vam4s0sb5.webp'); ";
+    html += "background-size: cover; background-position: center; display: flex; flex-direction: column; height: 100vh; justify-content: space-between; }";
+    html += "h1 { color: red; margin: 20px; text-shadow: 2px 2px 5px #000; }";
+    html += ".button { margin: 10px; width: 120px; height: 50px; font-size: 16px; color: white; border: none; border-radius: 10px; cursor: pointer; display: inline-block; }";
+    html += ".on { background-color: green; }";
+    html += ".off { background-color: red; }";
+    html += ".button:active { transform: scale(0.95); }";
+    html += ".reboot { background-color: lightgreen; color: black; }";
+    html += ".reboot:hover { background-color: #90ee90; }";
+    html += ".button-container { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 20px; }";
+    html += ".button-container .button { margin: 10px; }";
     html += "</style></head><body>";
 
-    html += "<h2>ESP8266 Web Server WITH OTA " + current_version + "</h2>";
-    html += "<p>LED state: <strong id='ledState' style='color: red;'>";
-    html += (LED_state == LOW) ? "OFF" : "ON";
-    html += "</strong></p>";
+    html += "<h1>ESP8266 Web Server WITH OTA " + current_version + "</h1>";
     html += "<div class='button-container'>";
-    html += "<a class='button' href='#' onclick='sendRequest(\"/led1/on\")'>Turn ON</a>";
-    html += "<a class='button' href='#' onclick='sendRequest(\"/led1/off\")'>Turn OFF</a>";
+    html += "<button class='button " + String(LED_state ? "on" : "off") + "' onclick=\"sendRequest('/led1/on')\">Turn ON</button>";
+    html += "<button class='button " + String(!LED_state ? "on" : "off") + "' onclick=\"sendRequest('/led1/off')\">Turn OFF</button>";
     html += "</div>";
+
     html += "<div class='button-container'>";
-    html += "<a class='button' href='#' onclick='sendRequest(\"/reboot\")'>Reboot</a>";
-    html += "<a class='button' href='#' onclick='sendRequest(\"/update\")'>Check for Update</a>";
-    html += "<a class='button' href='#' onclick='sendRequest(\"/apmode\")'>Force AP Mode</a>";
+    html += "<button class='button reboot' onclick=\"sendRequest('/reboot')\">Reboot</button>";
+    html += "<button class='button' onclick=\"sendRequest('/update')\">Check for Update</button>";
+    html += "<button class='button' onclick=\"sendRequest('/apmode')\">Force AP Mode</button>";
     html += "</div>";
-    html += "<div class='schedule'>";
-    html += "<h3>Reboot Schedule</h3>";
-    html += "<ul>";
-    html += "<li>Reboot Time: " + String(rebootHour) + ":" + String(rebootMinute < 10 ? "0" : "") + String(rebootMinute) + "</li>";
-    html += "</ul>";
-    html += "<h3>LED Schedule</h3>";
-    html += "<ul>";
-    html += "<li>Morning ON: " + String(morningOnHour) + ":" + String(morningOnMinute < 10 ? "0" : "") + String(morningOnMinute) + "</li>";
-    html += "<li>Morning OFF: " + String(morningOffHour) + ":" + String(morningOffMinute < 10 ? "0" : "") + String(morningOffMinute) + "</li>";
-    html += "<li>Evening OFF: " + String(eveningOffHour) + ":" + String(eveningOffMinute < 10 ? "0" : "") + String(eveningOffMinute) + "</li>";
-    html += "<li>Sunset Time: " + String(getSunsetHour()) + ":00</li>"; // Add sunset time to the schedule
-    html += "</ul>";
-    html += "</div>";
-    html += "<p>Current Time: " + timeClient.getFormattedTime() + "</p>";
-    html += "<p>" + updateStatus + "</p>";
-    html += "<p>" + rebootStatus + "</p>";
 
-    // Add WiFi configuration form at the bottom
-    html += "<style>";
-    html += "  .wifi-container { display: flex; justify-content: center; }";
-    html += "  .wifi-form { display: flex; flex-direction: column; max-width: 300px; text-align: left; }";
-    html += "  .wifi-form label { display: flex; justify-content: space-between; margin-bottom: 10px; }";
-    html += "  .wifi-form input { width: 100%; }";
-    html += "</style>";
-
-    html += "<h3 style='text-align: center;'>WiFi Configuration</h3>";
-    html += "<div class='wifi-container'>";
-    html += "  <form method='post' action='/setwifi' class='wifi-form'>";
-    html += "    <label>SSID: <input type='text' name='ssid'></label>";
-    html += "    <label>Password: <input type='password' name='password'></label>";
-    html += "    <input type='submit' value='Save' style='margin-top: 10px;'>";
-    html += "  </form>";
-    html += "</div>";
+    html += "<p>LED state: <strong id='ledState' style='color: red;'>" + String(LED_state ? "ON" : "OFF") + "</strong></p>";
 
     html += "<script>";
     html += "function sendRequest(url) {";
