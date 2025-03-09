@@ -16,7 +16,7 @@
 
 #define VERSION "1.0.0"  // Define the version number
 
-const String current_version = VERSION;
+String current_version = VERSION;
 const String api_url = "https://api.github.com/repos/SWhardfish/ESP8266-LED-OTA/releases/latest"; // GitHub API for latest release
 const char *firmware_url = "https://github.com/SWhardfish/ESP8266-LED-OTA/releases/latest/download/firmware.bin"; // URL to firmware binary
 
