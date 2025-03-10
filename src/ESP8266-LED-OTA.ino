@@ -481,7 +481,7 @@ void setupRoutes() {
     logFile.close();
 
     server.send(200, "text/html", "<html><body><pre>" + logContent + "</pre></body></html>");
-});
+    });
 
 }
 
