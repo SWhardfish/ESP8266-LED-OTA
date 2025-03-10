@@ -354,20 +354,22 @@ String getHTML() {
     html += "<button class='button' onclick=\"sendRequest('/apmode')\">Force AP Mode</button>";
     html += "</div>";
 
-    html += "<div class='schedule' style='color: red;'>";
-    html += "<h3 style='text-align: center;'>LED Schedule</h3>";
-    html += "<div style='text-align: left;'>Morning ON: " + String(morningOnHour) + ":" + String(morningOnMinute < 10 ? "0" : "") + String(morningOnMinute) + "</div>";
-    html += "<div style='text-align: left;'>Morning OFF: " + String(morningOffHour) + ":" + String(morningOffMinute < 10 ? "0" : "") + String(morningOffMinute) + "</div>";
-    html += "<div style='text-align: left;'>Evening OFF: " + String(eveningOffHour) + ":" + String(eveningOffMinute < 10 ? "0" : "") + String(eveningOffMinute) + "</div>";
-    html += "<div style='text-align: left;'>Sunset Time: " + String(getSunsetHour()) + ":00</div>";
+    html += "<div class='schedule' style='color: DarkGrey; text-align: center;'>";
+    html += "<h3>LED Schedule</h3>";
+    html += "<div style='display: inline-block; text-align: left;'>";
+    html += "  <div>Morning ON: " + String(morningOnHour) + ":" + String(morningOnMinute < 10 ? "0" : "") + String(morningOnMinute) + "</div>";
+    html += "  <div>Morning OFF: " + String(morningOffHour) + ":" + String(morningOffMinute < 10 ? "0" : "") + String(morningOffMinute) + "</div>";
+    html += "  <div>Sunset Time: " + String(getSunsetHour()) + ":00</div>";
+    html += "  <div>Evening OFF: " + String(eveningOffHour) + ":" + String(eveningOffMinute < 10 ? "0" : "") + String(eveningOffMinute) + "</div>";
+    html += "</div>";
     html += "</div>";
 
-    html += "<div class='schedule' style='color: red;'>";
-    html += "<h3 style='text-align: center;'>WiFi Configuration</h3>";
-    html += "<div class='wifi-container'>";
-    html += "  <form method='post' action='/setwifi' class='wifi-form'>";
-    html += "    <label>SSID: <input type='text' name='ssid'></label>";
-    html += "    <label>Password: <input type='password' name='password'></label>";
+    html += "<div class='schedule' style='color: DarkGrey; text-align: center;'>";
+    html += "<h3>WiFi Configuration</h3>";
+    html += "<div class='wifi-container' style='display: flex; justify-content: center;'>";
+    html += "  <form method='post' action='/setwifi' class='wifi-form' style='display: flex; flex-direction: column; align-items: center;'>";
+    html += "    <label style='display: flex; justify-content: space-between; width: 200px;'>SSID: <input type='text' name='ssid' style='flex-grow: 1;'></label>";
+    html += "    <label style='display: flex; justify-content: space-between; width: 200px; margin-top: 5px;'>Password: <input type='password' name='password' style='flex-grow: 1;'></label>";
     html += "    <input type='submit' value='Save' style='margin-top: 10px;'>";
     html += "  </form>";
     html += "</div>";
