@@ -329,7 +329,7 @@ String getHTML() {
     html += "background-image: url('https://wallpapersok.com/images/high/illustration-of-millenium-falcon-in-star-wars-cell-phone-cesjxv8vam4s0sb5.webp'); ";
     html += "background-size: cover; background-position: center; display: flex; flex-direction: column; height: 100vh; justify-content: space-between; }";
     html += "h1 { color: black; margin: 20px; text-shadow: 2px 2px 5px #000; }";
-    html += "h3 { color: red; margin: 20px; text-shadow: 2px 2px 5px #000; }";
+    html += "h3 { color: #A9A9A9; margin: 20px; text-shadow: 2px 2px 5px #000; }";
     html += ".button { margin: 10px; width: 120px; height: 50px; font-size: 16px; color: black; border: none; border-radius: 10px; cursor: pointer; display: inline-block; background-color: DarkGrey; }";
     html += ".button:hover { background-color: LightGrey; }";
     html += ".on { background-color: red; }";
@@ -370,10 +370,11 @@ String getHTML() {
     html += "  <form method='post' action='/setwifi' class='wifi-form' style='display: flex; flex-direction: column; align-items: center;'>";
     html += "    <label style='display: flex; justify-content: space-between; width: 200px;'>SSID: <input type='text' name='ssid' style='flex-grow: 1;'></label>";
     html += "    <label style='display: flex; justify-content: space-between; width: 200px; margin-top: 5px;'>Password: <input type='password' name='password' style='flex-grow: 1;'></label>";
-    html += "    <input type='submit' value='Save' style='margin-top: 10px;'>";
+    html += "    <input type='submit' value='Save' class='button' style='margin-top: 10px; width: 100px; height: 40px; font-size: 14px;'>";
     html += "  </form>";
     html += "</div>";
     html += "</div>";
+
 
     html += "<script>";
     html += "function sendRequest(url) {";
