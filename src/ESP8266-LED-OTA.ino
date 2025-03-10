@@ -330,18 +330,18 @@ String getHTML() {
     html += "background-size: cover; background-position: center; display: flex; flex-direction: column; height: 100vh; justify-content: space-between; }";
     html += "h1 { color: black; margin: 20px; text-shadow: 2px 2px 5px #000; }";
     html += "h3 { color: red; margin: 20px; text-shadow: 2px 2px 5px #000; }";
-    html += ".button { margin: 10px; width: 120px; height: 50px; font-size: 16px; color: white; border: none; border-radius: 10px; cursor: pointer; display: inline-block; }";
-    html += ".on { background-color: green; }";
-    html += ".off { background-color: red; }";
+    html += ".button { margin: 10px; width: 120px; height: 50px; font-size: 16px; color: black; border: none; border-radius: 10px; cursor: pointer; display: inline-block; background-color: DarkGrey; }";
+    html += ".button:hover { background-color: LightGrey; }";
+    html += ".on { background-color: red; }";
+    html += ".off { background-color: green; }";
     html += ".button:active { transform: scale(0.95); }";
-    html += ".reboot { background-color: lightgreen; color: black; }";
-    html += ".reboot:hover { background-color: #90ee90; }";
-    html += ".button-container { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 20px; }";
-    html += ".button-container .button { margin: 10px; }";
+    html += ".button-container { color: DarkGrey; display: flex; flex-wrap: wrap; justify-content: center; margin-top: 20px; }";
+    html += ".wifi-form { display: flex; flex-direction: column; align-items: center; }";
+    html += ".wifi-form label { display: block; margin: 5px 0; }";
     html += "</style></head><body>";
 
     html += "<h1>ESP8266 Web Server WITH OTA " + current_version + "</h1>";
-    html += "<p>LED state: <strong id='ledState' style='color: red;'>" + String(LED_state ? "ON" : "OFF") + "</strong></p>";
+    html += "<p>LED state: <strong id='ledState' style='color: " + String(LED_state ? "red" : "green") + ";'>" + String(LED_state ? "ON" : "OFF") + "</strong></p>";
 
     html += "<div class='button-container'>";
     html += "<button class='button " + String(LED_state ? "on" : "off") + "' onclick=\"sendRequest('/led1/on')\">Turn ON</button>";
@@ -349,7 +349,7 @@ String getHTML() {
     html += "</div>";
 
     html += "<div class='button-container'>";
-    html += "<button class='button reboot' onclick=\"sendRequest('/reboot')\">Reboot</button>";
+    html += "<button class='button' onclick=\"sendRequest('/reboot')\">Reboot</button>";
     html += "<button class='button' onclick=\"sendRequest('/update')\">Check for Update</button>";
     html += "<button class='button' onclick=\"sendRequest('/apmode')\">Force AP Mode</button>";
     html += "</div>";
@@ -362,9 +362,6 @@ String getHTML() {
     html += "<div style='text-align: left;'>Sunset Time: " + String(getSunsetHour()) + ":00</div>";
     html += "</div>";
 
-
-    //html += "<a href='/viewlog' style='display:block;margin:20px;'>View Wi-Fi Log</a>";
-
     html += "<div class='schedule' style='color: red;'>";
     html += "<h3 style='text-align: center;'>WiFi Configuration</h3>";
     html += "<div class='wifi-container'>";
@@ -373,6 +370,7 @@ String getHTML() {
     html += "    <label>Password: <input type='password' name='password'></label>";
     html += "    <input type='submit' value='Save' style='margin-top: 10px;'>";
     html += "  </form>";
+    html += "</div>";
     html += "</div>";
 
     html += "<script>";
@@ -383,6 +381,7 @@ String getHTML() {
     html += "    if (xhr.status == 200) {";
     html += "      if (url.includes('led1')) {";
     html += "        document.getElementById('ledState').innerText = url.includes('on') ? 'ON' : 'OFF';";
+    html += "        document.getElementById('ledState').style.color = url.includes('on') ? 'red' : 'green';";
     html += "      }";
     html += "    }";
     html += "  };";
@@ -393,8 +392,6 @@ String getHTML() {
 
     return html;
 }
-
-
 
 void setupRoutes() {
     // Serve the main webpage
