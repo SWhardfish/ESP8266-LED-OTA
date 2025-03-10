@@ -58,11 +58,11 @@ int getSunsetHour() {
 // Function to log events to the file
 void logEvent(const String &message) {
     // Print to Serial for Arduino IDE console
-    Serial.println(message);
+    logEvent(message);
 
     // Ensure LittleFS is mounted
     if (!LittleFS.begin()) {
-        Serial.println("Failed to mount LittleFS");
+        logEvent("Failed to mount LittleFS");
         return;
     }
 
@@ -72,41 +72,41 @@ void logEvent(const String &message) {
         logFile.println(message);
         logFile.close();
     } else {
-        Serial.println("Failed to open log file for writing");
+        logEvent("Failed to open log file for writing");
     }
 }
 
 
 void loadConfig() {
     if (!LittleFS.begin()) {
-        Serial.println("Failed to mount LittleFS");
+        logEvent("Failed to mount LittleFS");
         return;
     }
 
     File configFile = LittleFS.open("/config.json", "r");
     if (!configFile) {
-        Serial.println("Failed to open config file");
+        logEvent("Failed to open config file");
         return;
     }
 
     size_t size = configFile.size();
     if (size > 1024) {
-        Serial.println("Config file too large");
+        logEvent("Config file too large");
         return;
     }
 
     DynamicJsonDocument doc(256);
     DeserializationError error = deserializeJson(doc, configFile);
     if (error) {
-        Serial.println("Failed to parse config file");
+        logEvent("Failed to parse config file");
         return;
     }
 
     ssid = doc["ssid"].as<String>();
     password = doc["password"].as<String>();
 
-    Serial.println("WiFi Config Loaded:");
-    Serial.println("SSID: " + ssid);
+    logEvent("WiFi Config Loaded:");
+    logEvent("SSID: " + ssid);
 
     configFile.close();
 }
@@ -118,19 +118,19 @@ void saveConfig() {
 
     File configFile = LittleFS.open("/config.json", "w");
     if (!configFile) {
-        Serial.println("Failed to open config file for writing");
+        logEvent("Failed to open config file for writing");
         return;
     }
 
     serializeJson(doc, configFile);
     configFile.close();
-    Serial.println("WiFi Config Saved");
+    logEvent("WiFi Config Saved");
 }
 
 void startAPMode() {
     WiFi.softAP("ESP8266-Config");  // Start AP with SSID "ESP8266-Config"
-    Serial.println("Access Point Started");
-    Serial.println("IP Address: " + WiFi.softAPIP().toString());
+    logEvent("Access Point Started");
+    logEvent("IP Address: " + WiFi.softAPIP().toString());
 
     // Serve the configuration page
     server.on("/", HTTP_GET, []() {
@@ -157,13 +157,13 @@ void startAPMode() {
     }
 
     // After timeout, attempt to reconnect to WiFi
-    Serial.println("Timeout reached in AP mode, retrying WiFi connection...");
+    logEvent("Timeout reached in AP mode, retrying WiFi connection...");
     connectWiFi();  // Try connecting to WiFi again
 }
 
 void connectWiFi() {
     Serial.print("Connecting to WiFi: ");
-    Serial.println(ssid);
+    logEvent(ssid);
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
@@ -177,45 +177,45 @@ void connectWiFi() {
     }
 
     if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("\nConnected to WiFi!");
+        logEvent("\nConnected to WiFi!");
         Serial.print("IP Address: ");
-        Serial.println(WiFi.localIP());
+        logEvent(WiFi.localIP());
         digitalWrite(STATUS_LED, LOW); // WiFi connected, turn LED off
         // Start server here, only after successful WiFi connection
         setupRoutes();
         server.begin();  // Start the web server
     } else {
-        Serial.println("\nFailed to connect. Starting AP mode...");
+        logEvent("\nFailed to connect. Starting AP mode...");
         startAPMode(); // If WiFi connection fails, start AP mode
     }
 }
 
 void startOTA() {
     ArduinoOTA.onStart([]() {
-        Serial.println("OTA Update Started...");
+        logEvent("OTA Update Started...");
     });
     ArduinoOTA.onEnd([]() {
-        Serial.println("OTA Update Complete. Rebooting...");
+        logEvent("OTA Update Complete. Rebooting...");
     });
     ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-        Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+        logEvent("Progress: %u%%\r", (progress / (total / 100)));
     });
     ArduinoOTA.onError([](ota_error_t error) {
-        Serial.printf("OTA Error[%u]: ", error);
-        if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-        else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-        else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-        else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-        else if (error == OTA_END_ERROR) Serial.println("End Failed");
+        logEvent("OTA Error[%u]: ", error);
+        if (error == OTA_AUTH_ERROR) logEvent("Auth Failed");
+        else if (error == OTA_BEGIN_ERROR) logEvent("Begin Failed");
+        else if (error == OTA_CONNECT_ERROR) logEvent("Connect Failed");
+        else if (error == OTA_RECEIVE_ERROR) logEvent("Receive Failed");
+        else if (error == OTA_END_ERROR) logEvent("End Failed");
     });
     ArduinoOTA.begin();
-    Serial.println("OTA Ready.");
+    logEvent("OTA Ready.");
 }
 
 void removePreviousOTAFile() {
     if (LittleFS.exists("/firmware.bin")) {
         LittleFS.remove("/firmware.bin");
-        Serial.println("Previous OTA file removed.");
+        logEvent("Previous OTA file removed.");
     }
 }
 
@@ -223,7 +223,7 @@ String updateStatus = "";
 String rebootStatus = "";
 
 void checkForUpdates() {
-    Serial.println("Checking for firmware updates...");
+    logEvent("Checking for firmware updates...");
     updateStatus = "Checking for firmware updates...";
 
     removePreviousOTAFile();
@@ -236,11 +236,11 @@ void checkForUpdates() {
     http.setTimeout(20000);
 
     int httpCode = http.GET();
-    Serial.printf("HTTP Response Code: %d\n", httpCode);
+    logEvent("HTTP Response Code: %d\n", httpCode);
     updateStatus += "<br>HTTP Response Code: " + String(httpCode);
 
     if (httpCode != HTTP_CODE_OK) {
-        Serial.println("Failed to check version!");
+        logEvent("Failed to check version!");
         updateStatus += "<br>Failed to check version!";
         http.end();
         return;
@@ -252,7 +252,7 @@ void checkForUpdates() {
     http.end();  // Free memory **before** downloading firmware
 
     if (error) {
-        Serial.println("JSON Parse Failed!");
+        logEvent("JSON Parse Failed!");
         updateStatus += "<br>JSON Parse Failed!";
         return;
     }
@@ -261,7 +261,7 @@ void checkForUpdates() {
     String latest_version = doc["tag_name"].as<String>();
     String firmware_url = doc["assets"][0]["browser_download_url"].as<String>();
 
-    Serial.printf("Latest: %s | Current: %s\n", latest_version.c_str(), current_version.c_str());
+    logEvent("Latest: %s | Current: %s\n", latest_version.c_str(), current_version.c_str());
     updateStatus += "<br>Latest version: " + latest_version;
     updateStatus += "<br>Current version: " + current_version;
 
@@ -271,12 +271,12 @@ void checkForUpdates() {
     }
 
     if (latest_version == VERSION) {  // Compare with `VERSION`
-        Serial.println("Already up to date.");
+        logEvent("Already up to date.");
         updateStatus += "<br>Already up to date.";
         return;
     }
 
-    Serial.println("New version found! Starting update...");
+    logEvent("New version found! Starting update...");
     updateStatus += "<br>New version found! Starting update...";
 
     // Download Firmware
@@ -286,7 +286,7 @@ void checkForUpdates() {
     int firmwareHttpCode = http.GET();
 
     if (firmwareHttpCode != HTTP_CODE_OK) {
-        Serial.printf("Firmware download failed! HTTP Error: %d\n", firmwareHttpCode);
+        logEvent("Firmware download failed! HTTP Error: %d\n", firmwareHttpCode);
         updateStatus += "<br>Firmware download failed!";
         http.end();
         return;
@@ -296,24 +296,24 @@ void checkForUpdates() {
     size_t contentLength = http.getSize();
 
     if (contentLength <= 0) {
-        Serial.println("Invalid firmware size!");
+        logEvent("Invalid firmware size!");
         updateStatus += "<br>Invalid firmware size!";
         http.end();
         return;
     }
 
-    Serial.printf("Firmware Size: %d bytes\n", contentLength);
+    logEvent("Firmware Size: %d bytes\n", contentLength);
     updateStatus += "<br>Firmware Size: " + String(contentLength) + " bytes";
 
     if (!Update.begin(contentLength)) {
-        Serial.println("Not enough space for update!");
+        logEvent("Not enough space for update!");
         updateStatus += "<br>Not enough space for update!";
         http.end();
         return;
     }
 
     // **Download in Chunks to Avoid OOM**
-    Serial.println("Updating firmware...");
+    logEvent("Updating firmware...");
     updateStatus += "<br>Updating firmware...";
     uint8_t buff[512]; // Small buffer (Adjustable: 512 - 1024)
     size_t written = 0;
@@ -326,16 +326,16 @@ void checkForUpdates() {
             if (bytesRead > 0) {
                 Update.write(buff, bytesRead);
                 written += bytesRead;
-                Serial.printf("Progress: %d/%d bytes\n", written, contentLength);
+                logEvent("Progress: %d/%d bytes\n", written, contentLength);
             }
         }
     }
 
     if (!Update.end()) {
-        Serial.printf("Update failed! Error: %s\n", Update.getErrorString().c_str());
+        logEvent("Update failed! Error: %s\n", Update.getErrorString().c_str());
         updateStatus += "<br>Update failed!";
     } else {
-        Serial.println("Update complete! Rebooting...");
+        logEvent("Update complete! Rebooting...");
         updateStatus += "<br>Update complete! Rebooting...";
         ESP.restart();
     }
@@ -407,7 +407,7 @@ String getHTML() {
     html += "    if (xhr.status == 200) {";
     html += "      if (url.includes('led1')) {";
     html += "        document.getElementById('ledState').innerText = url.includes('on') ? 'ON' : 'OFF';";
-    html += "        document.getElementById('ledState').style.color = url.includes('on') ? 'red' : 'green';";
+    html += "        document.getElementById('ledState').style.color = url.includes('on') ? 'green' : 'red';";
     html += "      }";
     html += "    }";
     html += "  };";
@@ -439,14 +439,14 @@ void setupRoutes() {
     server.on("/led1/on", HTTP_GET, []() {
         LED_state = HIGH;
         digitalWrite(LED_PIN, LED_state);
-        Serial.println("LED turned ON");
+        logEvent("LED turned ON");
         server.send(200, "text/plain", "ON");
     });
 
     server.on("/led1/off", HTTP_GET, []() {
         LED_state = LOW;
         digitalWrite(LED_PIN, LED_state);
-        Serial.println("LED turned OFF");
+        logEvent("LED turned OFF");
         server.send(200, "text/plain", "OFF");
     });
 
@@ -512,23 +512,23 @@ void setup() {
     digitalWrite(STATUS_LED, LOW);  // Initialize STATUS_LED
 
     if (!LittleFS.begin()) {
-        Serial.println("Failed to mount LittleFS!");
+        logEvent("Failed to mount LittleFS!");
         return;
     File testFile = LittleFS.open("/testfile.txt", "w");
     if (testFile) {
         testFile.println("Test message.");
         testFile.close();
-        Serial.println("Test file created successfully");
+        logEvent("Test file created successfully");
     } else {
-        Serial.println("Failed to create test file");
+        logEvent("Failed to create test file");
     }
 
     } else {
-        Serial.println("LittleFS mounted successfully.");
+        logEvent("LittleFS mounted successfully.");
     }
 
     if (!LittleFS.exists("/config.json")) {
-        Serial.println("Config file missing! Starting AP mode...");
+        logEvent("Config file missing! Starting AP mode...");
         startAPMode();
     } else {
         loadConfig();
@@ -590,7 +590,7 @@ void loop() {
     // Check if it's reboot time
     if (timeClient.getHours() == rebootHour && timeClient.getMinutes() == rebootMinute) {
         if (!rebootTriggered) {
-            Serial.println("Reboot time reached. Rebooting...");
+            logEvent("Reboot time reached. Rebooting...");
             rebootTriggered = true;
             ESP.restart();
         }
@@ -604,28 +604,28 @@ void loop() {
     if (currentHour == morningOnHour && currentMinute == morningOnMinute) {
         digitalWrite(LED_PIN, HIGH);
         LED_state = HIGH;
-        Serial.println("LED turned ON (morning schedule)");
+        logEvent("LED turned ON (morning schedule)");
     }
     if (currentHour == morningOffHour && currentMinute == morningOffMinute) {
         digitalWrite(LED_PIN, LOW);
         LED_state = LOW;
-        Serial.println("LED turned OFF (morning schedule)");
+        logEvent("LED turned OFF (morning schedule)");
     }
 
     int sunsetHour = getSunsetHour();
     if (currentHour == (sunsetHour - 1) && currentMinute == 0) {
         digitalWrite(LED_PIN, HIGH);
         LED_state = HIGH;
-        Serial.println("LED turned ON (evening schedule)");
+        logEvent("LED turned ON (evening schedule)");
     }
     if (currentHour == eveningOffHour && currentMinute == eveningOffMinute) {
         digitalWrite(LED_PIN, LOW);
         LED_state = LOW;
-        Serial.println("LED turned OFF (evening schedule)");
+        logEvent("LED turned OFF (evening schedule)");
     }
 
     if (WiFi.status() != WL_CONNECTED && WiFi.getMode() != WIFI_AP) {
-        Serial.println("Lost WiFi connection! Starting AP mode...");
+        logEvent("Lost WiFi connection! Starting AP mode...");
         startAPMode();
     }
 }
