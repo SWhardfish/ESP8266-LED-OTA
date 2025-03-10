@@ -489,6 +489,15 @@ void setup() {
     if (!LittleFS.begin()) {
         Serial.println("Failed to mount LittleFS!");
         return;
+    File testFile = LittleFS.open("/testfile.txt", "w");
+    if (testFile) {
+        testFile.println("Test message.");
+        testFile.close();
+        Serial.println("Test file created successfully");
+    } else {
+        Serial.println("Failed to create test file");
+    }
+
     } else {
         Serial.println("LittleFS mounted successfully.");
     }
