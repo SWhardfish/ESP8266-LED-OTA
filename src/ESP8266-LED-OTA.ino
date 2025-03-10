@@ -340,7 +340,7 @@ String getHTML() {
     html += ".wifi-form label { display: block; margin: 5px 0; }";
     html += "</style></head><body>";
 
-    html += "<h1>ESP8266 Web Server WITH OTA " + current_version + "</h1>";
+    html += "<h1>ESP8266 WebServer WITH OTA " + current_version + "</h1>";
     html += "<p>LED state: <strong id='ledState' style='color: " + String(LED_state ? "red" : "green") + ";'>" + String(LED_state ? "ON" : "OFF") + "</strong></p>";
 
     html += "<div class='button-container'>";
