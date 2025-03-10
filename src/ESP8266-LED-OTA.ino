@@ -61,7 +61,7 @@ void logEvent(const String &message) {
     Serial.println(message);
 
     // Log to the file
-    File logFile = LittleFS.open("/wifi_log.txt", "a");
+    File logFile = LittleFS.open(logFilePath, "a");
     if (logFile) {
         logFile.println(message);
         logFile.close();
@@ -358,7 +358,7 @@ String getHTML() {
     html += "</style></head><body>";
 
     html += "<h1>ESP8266 WebServer WITH OTA " + current_version + "</h1>";
-    html += "<p>LED state: <strong id='ledState' style='color: " + String(LED_state ? "red" : "green") + ";'>" + String(LED_state ? "ON" : "OFF") + "</strong></p>";
+    html += "<h3><p>LED state: <h3><strong id='ledState' style='color: " + String(LED_state ? "red" : "green") + ";'>" + String(LED_state ? "ON" : "OFF") + "</strong></p>";
 
     html += "<div class='button-container'>";
     html += "<button class='button " + String(LED_state ? "on" : "off") + "' onclick=\"sendRequest('/led1/on')\">Turn ON</button>";
@@ -492,6 +492,9 @@ void setup() {
     } else {
         Serial.println("LittleFS mounted successfully.");
     }
+    // Print free space
+    Serial.print("Free space: ");
+    Serial.println(LittleFS.totalBytes() - LittleFS.usedBytes());
 
     if (!LittleFS.exists("/config.json")) {
         Serial.println("Config file missing! Starting AP mode...");
