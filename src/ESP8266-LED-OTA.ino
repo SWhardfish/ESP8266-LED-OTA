@@ -17,6 +17,7 @@
 String current_version = VERSION;
 const String api_url = "https://api.github.com/repos/SWhardfish/ESP8266-LED-OTA/releases/latest"; // GitHub API for latest release
 const char *firmware_url = "https://github.com/SWhardfish/ESP8266-LED-OTA/releases/latest/download/firmware.bin"; // URL to firmware binary
+const char *logFilePath = "/eventlog.txt";
 
 String ssid = "";
 String password = "";
@@ -53,6 +54,22 @@ bool statusLedState = LOW;
 int getSunsetHour() {
     return 17; // 5 PM
 }
+
+// Function to log events to the file
+void logEvent(const String &message) {
+    // Print to Serial for Arduino IDE console
+    Serial.println(message);
+
+    // Log to the file
+    File logFile = LittleFS.open("/wifi_log.txt", "a");
+    if (logFile) {
+        logFile.println(message);
+        logFile.close();
+    } else {
+        Serial.println("Failed to open log file for writing");
+    }
+}
+
 
 void loadConfig() {
     if (!LittleFS.begin()) {
@@ -444,7 +461,23 @@ void setupRoutes() {
         delay(1000);
         startAPMode();
     });
+
+    server.on("/viewlog", HTTP_GET, []() {
+        File logFile = LittleFS.open(logFilePath, "r");
+        if (logFile) {
+            String logContent = "<h2>Eventlog</h2><pre>";
+            while (logFile.available()) {
+                logContent += logFile.readString();
+            }
+            logContent += "</pre>";
+            server.send(200, "text/html", logContent);
+            logFile.close();
+        } else {
+            server.send(500, "text/plain", "Failed to open Eventlog.");
+        }
+    });
 }
+
 
 void setup() {
     Serial.begin(115200);
