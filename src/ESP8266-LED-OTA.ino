@@ -463,19 +463,26 @@ void setupRoutes() {
     });
 
     server.on("/viewlog", HTTP_GET, []() {
-        File logFile = LittleFS.open(logFilePath, "r");
-        if (logFile) {
-            String logContent = "<h2>Eventlog</h2><pre>";
-            while (logFile.available()) {
-                logContent += logFile.readString();
-            }
-            logContent += "</pre>";
-            server.send(200, "text/html", logContent);
-            logFile.close();
-        } else {
-            server.send(500, "text/plain", "Failed to open Eventlog.");
-        }
-    });
+    if (!LittleFS.begin()) {
+        server.send(500, "text/plain", "Failed to mount LittleFS");
+        return;
+    }
+
+    File logFile = LittleFS.open(logFilePath, "r");
+    if (!logFile) {
+        server.send(404, "text/plain", "Log file not found");
+        return;
+    }
+
+    String logContent;
+    while (logFile.available()) {
+        logContent += logFile.readStringUntil('\n') + "<br>";
+    }
+    logFile.close();
+
+    server.send(200, "text/html", "<html><body><pre>" + logContent + "</pre></body></html>");
+});
+
 }
 
 
