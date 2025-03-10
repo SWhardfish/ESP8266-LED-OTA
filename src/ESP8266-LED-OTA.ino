@@ -60,6 +60,12 @@ void logEvent(const String &message) {
     // Print to Serial for Arduino IDE console
     Serial.println(message);
 
+    // Ensure LittleFS is mounted
+    if (!LittleFS.begin()) {
+        Serial.println("Failed to mount LittleFS");
+        return;
+    }
+
     // Log to the file
     File logFile = LittleFS.open(logFilePath, "a");
     if (logFile) {
@@ -463,24 +469,36 @@ void setupRoutes() {
     });
 
     server.on("/viewlog", HTTP_GET, []() {
-    if (!LittleFS.begin()) {
-        server.send(500, "text/plain", "Failed to mount LittleFS");
-        return;
-    }
+        if (!LittleFS.begin()) {
+            server.send(500, "text/plain", "Failed to mount LittleFS");
+            return;
+        }
 
-    File logFile = LittleFS.open(logFilePath, "r");
-    if (!logFile) {
-        server.send(404, "text/plain", "Log file not found");
-        return;
-    }
+        // Check if the log file exists, if not create it
+        if (!LittleFS.exists(logFilePath)) {
+            File logFile = LittleFS.open(logFilePath, "w");
+            if (logFile) {
+                logFile.println("Log file created.");
+                logFile.close();
+            } else {
+                server.send(500, "text/plain", "Failed to create log file");
+                return;
+            }
+        }
 
-    String logContent;
-    while (logFile.available()) {
-        logContent += logFile.readStringUntil('\n') + "<br>";
-    }
-    logFile.close();
+        File logFile = LittleFS.open(logFilePath, "r");
+        if (!logFile) {
+            server.send(404, "text/plain", "Log file not found");
+            return;
+        }
 
-    server.send(200, "text/html", "<html><body><pre>" + logContent + "</pre></body></html>");
+        String logContent;
+        while (logFile.available()) {
+            logContent += logFile.readStringUntil('\n') + "<br>";
+        }
+        logFile.close();
+
+        server.send(200, "text/html", "<html><body><pre>" + logContent + "</pre></body></html>");
     });
 
 }
