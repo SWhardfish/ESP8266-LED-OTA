@@ -329,6 +329,7 @@ String getHTML() {
     html += "background-image: url('https://wallpapersok.com/images/high/illustration-of-millenium-falcon-in-star-wars-cell-phone-cesjxv8vam4s0sb5.webp'); ";
     html += "background-size: cover; background-position: center; display: flex; flex-direction: column; height: 100vh; justify-content: space-between; }";
     html += "h1 { color: black; margin: 20px; text-shadow: 2px 2px 5px #000; }";
+    html += "h3 { color: red; margin: 20px; text-shadow: 2px 2px 5px #000; }";
     html += ".button { margin: 10px; width: 120px; height: 50px; font-size: 16px; color: white; border: none; border-radius: 10px; cursor: pointer; display: inline-block; }";
     html += ".on { background-color: green; }";
     html += ".off { background-color: red; }";
@@ -353,17 +354,18 @@ String getHTML() {
     html += "<button class='button' onclick=\"sendRequest('/apmode')\">Force AP Mode</button>";
     html += "</div>";
 
-    html += "<div class='schedule'>";
-    html += "<h3>LED Schedule</h3>";
-    html += "<ul>";
-    html += "<li>Morning ON: " + String(morningOnHour) + ":" + String(morningOnMinute < 10 ? "0" : "") + String(morningOnMinute) + "</li>";
-    html += "<li>Morning OFF: " + String(morningOffHour) + ":" + String(morningOffMinute < 10 ? "0" : "") + String(morningOffMinute) + "</li>";
-    html += "<li>Evening OFF: " + String(eveningOffHour) + ":" + String(eveningOffMinute < 10 ? "0" : "") + String(eveningOffMinute) + "</li>";
-    html += "<li>Sunset Time: " + String(getSunsetHour()) + ":00</li>";
-    html += "</ul></div>";
+    html += "<div class='schedule' style='color: red;'>";
+    html += "<h3 style='text-align: center;'>LED Schedule</h3>";
+    html += "<div style='text-align: left;'>Morning ON: " + String(morningOnHour) + ":" + String(morningOnMinute < 10 ? "0" : "") + String(morningOnMinute) + "</div>";
+    html += "<div style='text-align: left;'>Morning OFF: " + String(morningOffHour) + ":" + String(morningOffMinute < 10 ? "0" : "") + String(morningOffMinute) + "</div>";
+    html += "<div style='text-align: left;'>Evening OFF: " + String(eveningOffHour) + ":" + String(eveningOffMinute < 10 ? "0" : "") + String(eveningOffMinute) + "</div>";
+    html += "<div style='text-align: left;'>Sunset Time: " + String(getSunsetHour()) + ":00</div>";
+    html += "</div>";
 
-    html += "<a href='/viewlog' style='display:block;margin:20px;'>View Wi-Fi Log</a>";
 
+    //html += "<a href='/viewlog' style='display:block;margin:20px;'>View Wi-Fi Log</a>";
+
+    html += "<div class='schedule' style='color: red;'>";
     html += "<h3 style='text-align: center;'>WiFi Configuration</h3>";
     html += "<div class='wifi-container'>";
     html += "  <form method='post' action='/setwifi' class='wifi-form'>";
