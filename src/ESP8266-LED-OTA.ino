@@ -492,9 +492,6 @@ void setup() {
     } else {
         Serial.println("LittleFS mounted successfully.");
     }
-    // Print free space
-    Serial.print("Free space: ");
-    Serial.println(LittleFS.totalBytes() - LittleFS.usedBytes());
 
     if (!LittleFS.exists("/config.json")) {
         Serial.println("Config file missing! Starting AP mode...");
