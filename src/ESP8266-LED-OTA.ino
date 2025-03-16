@@ -29,6 +29,7 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", 0, 60000); // Sync every 60 seconds
 int LED_state = LOW;
 int switchState = HIGH;
 int lastSwitchState = HIGH;
+int brightnessLevel = 1023;  // Default to full brightness (ESP8266 PWM max is 1023)
 unsigned long lastDebounceTime = 0;
 unsigned long debounceDelay = 50;
 
@@ -371,6 +372,18 @@ String getHTML() {
     html += "<button class='button " + String(!LED_state ? "on" : "off") + "' onclick=\"sendRequest('/led1/off')\">Turn OFF</button>";
     html += "</div>";
 
+    html += "<h3>Brightness Control</h3>";
+    html += "<input type='range' min='0' max='100' value='100' id='brightnessSlider' oninput='updateBrightness(this.value)'>";
+    html += "<p>Brightness: <span id='brightnessValue'>100</span>%</p>";
+    html += "<script>";
+    html += "function updateBrightness(value) {";
+    html += "  document.getElementById('brightnessValue').innerText = value;";
+    html += "  var xhr = new XMLHttpRequest();";
+    html += "  xhr.open('GET', '/setBrightness?level=' + value, true);";
+    html += "  xhr.send();";
+    html += "}";
+    html += "</script>";
+
     html += "<div class='button-container'>";
     html += "<button class='button' onclick=\"sendRequest('/reboot')\">Reboot</button>";
     html += "<button class='button' onclick=\"sendRequest('/update')\">Check for Update</button>";
@@ -450,6 +463,18 @@ void setupRoutes() {
         server.send(200, "text/plain", "OFF");
     });
 
+    server.on("/setBrightness", HTTP_GET, []() {
+        if (server.hasArg("level")) {
+            int level = server.arg("level").toInt();
+            brightnessLevel = map(level, 0, 100, 0, 1023);  // Scale 0-100% to 0-1023
+            analogWrite(LED_PIN, brightnessLevel);
+            Serial.printf("Brightness set to: %d (PWM: %d)\n", level, brightnessLevel);
+            server.send(200, "text/plain", "Brightness set to " + String(level) + "%");
+        } else {
+            server.send(400, "text/plain", "Missing brightness level");
+        }
+    });
+
     server.on("/reboot", HTTP_GET, []() {
         rebootStatus = "Rebooting...";
         server.send(200, "text/plain", "Rebooting...");
@@ -512,7 +537,8 @@ void setup() {
     pinMode(SWITCH_PIN, INPUT_PULLUP);
     pinMode(STATUS_LED, OUTPUT);
 
-    digitalWrite(LED_PIN, LOW);  // Ensure LED/MOSFET is off initially
+    //digitalWrite(LED_PIN, LOW);  // Ensure LED/MOSFET is off initially
+    analogWrite(LED_PIN, brightnessLevel);  // Set default brightness
     digitalWrite(STATUS_LED, LOW);  // Ensure status LED is off initially
 
     if (!LittleFS.begin()) {
