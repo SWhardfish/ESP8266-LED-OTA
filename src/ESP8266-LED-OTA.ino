@@ -508,8 +508,12 @@ void setup() {
     Serial.begin(115200);
     delay(1000);
 
+    pinMode(LED_PIN, OUTPUT);
+    pinMode(SWITCH_PIN, INPUT_PULLUP);
     pinMode(STATUS_LED, OUTPUT);
-    digitalWrite(STATUS_LED, LOW);  // Initialize STATUS_LED
+
+    digitalWrite(LED_PIN, LOW);  // Ensure LED/MOSFET is off initially
+    digitalWrite(STATUS_LED, LOW);  // Ensure status LED is off initially
 
     if (!LittleFS.begin()) {
         Serial.println("Failed to mount LittleFS!");
