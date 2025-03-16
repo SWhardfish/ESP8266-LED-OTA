@@ -373,8 +373,13 @@ String getHTML() {
     html += "</div>";
 
     html += "<h3>Brightness Control</h3>";
-    html += "<input type='range' min='0' max='100' value='100' id='brightnessSlider' oninput='updateBrightness(this.value)'>";
+    html += "<div style='display: flex; align-items: center; gap: 10px;'>";
+    html += "  <span>0%</span>";  // Left label
+    html += "  <input type='range' min='0' max='100' value='100' id='brightnessSlider' oninput='updateBrightness(this.value)' style='width: 200px;'>";
+    html += "  <span>100%</span>"; // Right label
+    html += "</div>";
     html += "<p>Brightness: <span id='brightnessValue'>100</span>%</p>";
+
     html += "<script>";
     html += "function updateBrightness(value) {";
     html += "  document.getElementById('brightnessValue').innerText = value;";
