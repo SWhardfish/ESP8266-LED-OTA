@@ -407,6 +407,20 @@ String getHTML() {
     html += "  xhr.open('GET', '/setBrightness?level=' + value, true);";
     html += "  xhr.send();";
     html += "}";
+    // Add this with your other JavaScript
+    html += "function updateMotionState() {";
+    html += "  var xhr = new XMLHttpRequest();";
+    html += "  xhr.open('GET', '/motionState', true);";
+    html += "  xhr.onload = function() {";
+    html += "    if (xhr.status == 200) {";
+    html += "      document.getElementById('motionState').innerText = xhr.responseText;";
+    html += "      document.getElementById('motionState').style.color = xhr.responseText === 'ACTIVE' ? 'red' : 'green';";
+    html += "    }";
+    html += "  };";
+    html += "  xhr.send();";
+    html += "  setTimeout(updateMotionState, 1000);"; // Update every second
+    html += "}";
+    html += "updateMotionState();"; // Start the updates
     html += "</script>";
 
     html += "<div class='button-container'>";
@@ -499,6 +513,10 @@ void setupRoutes() {
             }
             server.send(200, "text/plain", "Brightness set to " + String(level) + "%");
         }
+    });
+
+    server.on("/motionState", HTTP_GET, []() {
+        server.send(200, "text/plain", motionDetected ? "ACTIVE" : "INACTIVE");
     });
 
     server.on("/reboot", HTTP_GET, []() {
