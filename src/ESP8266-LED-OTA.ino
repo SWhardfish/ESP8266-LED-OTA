@@ -385,7 +385,7 @@ String getHTML() {
 
     html += "<h1>ESP8266 WebServer WITH OTA " + current_version + "</h1>";
     html += "<h3><p>LED state: <h3><strong id='ledState' style='color: " + String(LED_state ? "red" : "green") + ";'>" + String(LED_state ? "ON" : "OFF") + "</strong></p>";
-        html += "<h3><p>Motion state: <strong id='motionState' style='color: " + String(motionDetected ? "red" : "green") + ";'>" + String(motionDetected ? "ACTIVE" : "INACTIVE") + "</strong></p></h3>";
+    html += "<h3><p>Motion state: <strong id='motionState' style='color: " + String(motionDetected ? "red" : "green") + ";'>" + String(motionDetected ? "ACTIVE" : "INACTIVE") + "</strong></p></h3>";
 
     html += "<div class='button-container'>";
     html += "<button class='button " + String(LED_state ? "on" : "off") + "' onclick=\"sendRequest('/led1/on')\">Turn ON</button>";
