@@ -11,6 +11,7 @@
 #include <WiFiClientSecureBearSSL.h>
 
 #define LED_PIN D7         // The ESP8266 pin connected to LED
+#define PIR_PIN D6         // Pin connected to PIR
 #define SWITCH_PIN D5      // The ESP8266 pin connected to the momentary switch
 #define STATUS_LED D4      // Status LED for WiFi connection feedback
 
@@ -32,6 +33,12 @@ int lastSwitchState = HIGH;
 int brightnessLevel = 1023;  // Default to full brightness (ESP8266 PWM max is 1023)
 unsigned long lastDebounceTime = 0;
 unsigned long debounceDelay = 50;
+
+//PIR Variables
+int brightness = 51;  // 20% brightness (255 * 0.2)
+bool motionDetected = false;
+unsigned long motionTimeout = 0;
+const unsigned long motionDuration = 1 * 60 * 1000; // 1 minutes
 
 // Reboot time variables
 const int rebootHour = 3; // Default reboot time at 03:00
@@ -217,6 +224,15 @@ void removePreviousOTAFile() {
     if (LittleFS.exists("/firmware.bin")) {
         LittleFS.remove("/firmware.bin");
         Serial.println("Previous OTA file removed.");
+    }
+}
+
+void fadeToBrightness(int targetBrightness) {
+    int step = (brightnessLevel > targetBrightness) ? -1 : 1;
+    while (brightnessLevel != targetBrightness) {
+        brightnessLevel += step;
+        analogWrite(LED_PIN, brightnessLevel);
+        delay(10);  // Adjust fade speed
     }
 }
 
@@ -538,6 +554,7 @@ void setup() {
     Serial.begin(115200);
     delay(1000);
 
+    pinMode(PIR_PIN, INPUT);
     pinMode(LED_PIN, OUTPUT);
     pinMode(SWITCH_PIN, INPUT_PULLUP);
     pinMode(STATUS_LED, OUTPUT);
@@ -584,6 +601,7 @@ void loop() {
     ArduinoOTA.handle();
     timeClient.update();
 
+
     // Handle STATUS_LED blinking based on WiFi mode
     unsigned long currentMillis = millis();
     if (WiFi.status() == WL_CONNECTED) {
@@ -602,6 +620,21 @@ void loop() {
             statusLedState = !statusLedState;
             digitalWrite(STATUS_LED, statusLedState);
         }
+    }
+
+    int pirState = digitalRead(PIR_PIN);
+
+    if (pirState == HIGH) {
+        // Motion detected, set to 100%
+        brightnessLevel = 255;
+        motionDetected = true;
+        motionTimeout = millis() + motionDuration;
+        analogWrite(LED_PIN, brightnessLevel);
+    }
+    else if (motionDetected && millis() > motionTimeout) {
+        // Motion timeout expired, fade to 20%
+        fadeToBrightness(51);  // 20% brightness
+        motionDetected = false;
     }
 
     // Button handling logic here
