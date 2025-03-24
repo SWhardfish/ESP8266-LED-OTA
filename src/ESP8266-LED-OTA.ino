@@ -14,6 +14,7 @@
 #define PIR_PIN D6         // Pin connected to PIR
 #define SWITCH_PIN D5      // The ESP8266 pin connected to the momentary switch
 #define STATUS_LED D4      // Status LED for WiFi connection feedback
+#define PIR_ACTIVE_HIGH true
 
 String current_version = VERSION;
 const String api_url = "https://api.github.com/repos/SWhardfish/ESP8266-LED-OTA/releases/latest"; // GitHub API for latest release
@@ -30,15 +31,16 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", 0, 60000); // Sync every 60 seconds
 int LED_state = LOW;
 int switchState = HIGH;
 int lastSwitchState = HIGH;
-int brightnessLevel = 1023;  // Default to full brightness (ESP8266 PWM max is 1023)
+int brightnessLevel = 255;  // Use 0-255 range consistently
 unsigned long lastDebounceTime = 0;
 unsigned long debounceDelay = 50;
 
-//PIR Variables
-int brightness = 51;  // 20% brightness (255 * 0.2)
+// Replace the PIR variables section with:
+int pirBrightness = 255;      // Full brightness when motion detected
+int idleBrightness = 51;      // 20% brightness when no motion
 bool motionDetected = false;
-unsigned long motionTimeout = 0;
-const unsigned long motionDuration = 1 * 60 * 1000; // 1 minutes
+unsigned long lastMotionTime = 0;
+const unsigned long motionTimeout = 1 * 60 * 1000; // 1 minute
 
 // Reboot time variables
 const int rebootHour = 3; // Default reboot time at 03:00
@@ -382,6 +384,7 @@ String getHTML() {
 
     html += "<h1>ESP8266 WebServer WITH OTA " + current_version + "</h1>";
     html += "<h3><p>LED state: <h3><strong id='ledState' style='color: " + String(LED_state ? "red" : "green") + ";'>" + String(LED_state ? "ON" : "OFF") + "</strong></p>";
+        html += "<h3><p>Motion state: <strong id='motionState' style='color: " + String(motionDetected ? "red" : "green") + ";'>" + String(motionDetected ? "ACTIVE" : "INACTIVE") + "</strong></p></h3>";
 
     html += "<div class='button-container'>";
     html += "<button class='button " + String(LED_state ? "on" : "off") + "' onclick=\"sendRequest('/led1/on')\">Turn ON</button>";
@@ -487,12 +490,13 @@ void setupRoutes() {
     server.on("/setBrightness", HTTP_GET, []() {
         if (server.hasArg("level")) {
             int level = server.arg("level").toInt();
-            brightnessLevel = map(level, 0, 100, 0, 255);  // Scale 0-100% to 0-255
+            brightnessLevel = map(level, 0, 100, 0, 255);
             analogWrite(LED_PIN, brightnessLevel);
-            Serial.printf("Brightness set to: %d (PWM: %d)\n", level, brightnessLevel);
+            // Reset PIR timeout if light was manually adjusted
+            if (motionDetected) {
+                lastMotionTime = millis();
+            }
             server.send(200, "text/plain", "Brightness set to " + String(level) + "%");
-        } else {
-            server.send(400, "text/plain", "Missing brightness level");
         }
     });
 
@@ -554,7 +558,7 @@ void setup() {
     Serial.begin(115200);
     delay(1000);
 
-    pinMode(PIR_PIN, INPUT);
+    pinMode(PIR_PIN, INPUT_PULLUP);  // Change to INPUT if your PIR needs different wiring
     pinMode(LED_PIN, OUTPUT);
     pinMode(SWITCH_PIN, INPUT_PULLUP);
     pinMode(STATUS_LED, OUTPUT);
@@ -601,6 +605,10 @@ void loop() {
     ArduinoOTA.handle();
     timeClient.update();
 
+    if (motionDetected) {
+        analogWrite(LED_PIN, pirBrightness); // Keep at full brightness while motion detected
+    }
+
 
     // Handle STATUS_LED blinking based on WiFi mode
     unsigned long currentMillis = millis();
@@ -622,19 +630,39 @@ void loop() {
         }
     }
 
-    int pirState = digitalRead(PIR_PIN);
-
-    if (pirState == HIGH) {
-        // Motion detected, set to 100%
-        brightnessLevel = 255;
-        motionDetected = true;
-        motionTimeout = millis() + motionDuration;
-        analogWrite(LED_PIN, brightnessLevel);
+    // Replace the PIR section in loop() with:
+    // Handle PIR sensor
+    bool currentPirState = digitalRead(PIR_PIN);
+    if (PIR_ACTIVE_HIGH) {
+        currentPirState = !currentPirState; // Invert if using INPUT_PULLUP
     }
-    else if (motionDetected && millis() > motionTimeout) {
-        // Motion timeout expired, fade to 20%
-        fadeToBrightness(51);  // 20% brightness
+
+    if (currentPirState == HIGH) {
+        // Motion detected
+        if (!motionDetected) {
+            logEvent("Motion detected - turning light on");
+            motionDetected = true;
+            LED_state = HIGH;  // Keep state consistent
+        }
+        lastMotionTime = millis();
+        analogWrite(LED_PIN, pirBrightness);
+    }
+    else if (motionDetected && (millis() - lastMotionTime > motionTimeout)) {
+        // No motion for timeout period
+        logEvent("Motion timeout - dimming light");
         motionDetected = false;
+        LED_state = LOW;
+
+        static unsigned long lastFadeTime = 0;
+        static int currentBrightness = analogRead(LED_PIN); // Start from current brightness
+
+        if (millis() - lastFadeTime >= fadeInterval) {
+            lastFadeTime = millis();
+            if (currentBrightness > idleBrightness) {
+                currentBrightness--;
+                analogWrite(LED_PIN, currentBrightness);
+            }
+        }
     }
 
     // Button handling logic here
