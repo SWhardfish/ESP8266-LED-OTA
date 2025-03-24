@@ -10,7 +10,7 @@
 #include <WiFiClientSecure.h>
 #include <WiFiClientSecureBearSSL.h>
 
-#define LED_PIN D6         // The ESP8266 pin connected to LED
+#define LED_PIN D7         // The ESP8266 pin connected to LED
 #define SWITCH_PIN D5      // The ESP8266 pin connected to the momentary switch
 #define STATUS_LED D4      // Status LED for WiFi connection feedback
 
