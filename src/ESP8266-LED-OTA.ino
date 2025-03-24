@@ -41,6 +41,7 @@ int idleBrightness = 51;      // 20% brightness when no motion
 bool motionDetected = false;
 unsigned long lastMotionTime = 0;
 const unsigned long motionTimeout = 1 * 60 * 1000; // 1 minute
+const int fadeInterval = 10;  // ms between fade steps <-- ADD THIS LINE
 
 // Reboot time variables
 const int rebootHour = 3; // Default reboot time at 03:00
@@ -630,7 +631,6 @@ void loop() {
         }
     }
 
-    // Replace the PIR section in loop() with:
     // Handle PIR sensor
     bool currentPirState = digitalRead(PIR_PIN);
     if (PIR_ACTIVE_HIGH) {
@@ -642,7 +642,7 @@ void loop() {
         if (!motionDetected) {
             logEvent("Motion detected - turning light on");
             motionDetected = true;
-            LED_state = HIGH;  // Keep state consistent
+            LED_state = HIGH;
         }
         lastMotionTime = millis();
         analogWrite(LED_PIN, pirBrightness);
