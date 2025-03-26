@@ -375,17 +375,17 @@ String getHTML() {
     html += "h3 { color: #A9A9A9; margin: 20px; text-shadow: 2px 2px 5px #000; }";
     html += ".button { margin: 10px; width: 120px; height: 50px; font-size: 16px; color: black; border: none; border-radius: 10px; cursor: pointer; display: inline-block; background-color: DarkGrey; }";
     html += ".button:hover { background-color: LightGrey; }";
-    html += ".on { background-color: red; }";
-    html += ".off { background-color: green; }";
+    html += ".on { background-color: green; }";
+    html += ".off { background-color: red; }";
     html += ".button:active { transform: scale(0.95); }";
     html += ".button-container { color: DarkGrey; display: flex; flex-wrap: wrap; justify-content: center; margin-top: 20px; }";
-    html += ".wifi-form { display: flex; flex-direction: column; align-items: center; }";
-    html += ".wifi-form label { display: block; margin: 5px 0; }";
+    html += "#brightnessValue { color: white; font-weight: bold; }";
+    html += "#brightnessControl { display: flex; justify-content: center; align-items: center; gap: 10px; }";
     html += "</style></head><body>";
 
     html += "<h1>ESP8266 WebServer WITH OTA " + current_version + "</h1>";
-    html += "<h3><p>LED state: <h3><strong id='ledState' style='color: " + String(LED_state ? "red" : "green") + ";'>" + String(LED_state ? "ON" : "OFF") + "</strong></p>";
-    html += "<h3><p>Motion state: <strong id='motionState' style='color: " + String(motionDetected ? "red" : "green") + ";'>" + String(motionDetected ? "ACTIVE" : "INACTIVE") + "</strong></p></h3>";
+    html += "<h3>LED state: <strong id='ledState' style='color: " + String(LED_state ? "green" : "red") + ";'>" + String(LED_state ? "ON" : "OFF") + "</strong></h3>";
+    html += "<h3>Motion state: <strong id='motionState' style='color: " + String(motionDetected ? "red" : "green") + ";'>" + String(motionDetected ? "ACTIVE" : "INACTIVE") + "</strong></h3>";
 
     html += "<div class='button-container'>";
     html += "<button class='button " + String(LED_state ? "on" : "off") + "' onclick=\"sendRequest('/led1/on')\">Turn ON</button>";
@@ -393,10 +393,10 @@ String getHTML() {
     html += "</div>";
 
     html += "<h3>Brightness Control</h3>";
-    html += "<div style='display: flex; align-items: center; gap: 10px;'>";
-    html += "  <span>0%</span>";  // Left label
+    html += "<div id='brightnessControl'>";
+    html += "  <span>0%</span>";
     html += "  <input type='range' min='0' max='100' value='100' id='brightnessSlider' oninput='updateBrightness(this.value)' style='width: 100px;'>";
-    html += "  <span>100%</span>"; // Right label
+    html += "  <span>100%</span>";
     html += "</div>";
     html += "<p>Brightness: <span id='brightnessValue'>100</span>%</p>";
 
@@ -407,7 +407,6 @@ String getHTML() {
     html += "  xhr.open('GET', '/setBrightness?level=' + value, true);";
     html += "  xhr.send();";
     html += "}";
-    // Add this with your other JavaScript
     html += "function updateMotionState() {";
     html += "  var xhr = new XMLHttpRequest();";
     html += "  xhr.open('GET', '/motionState', true);";
@@ -418,56 +417,12 @@ String getHTML() {
     html += "    }";
     html += "  };";
     html += "  xhr.send();";
-    html += "  setTimeout(updateMotionState, 1000);"; // Update every second
+    html += "  setTimeout(updateMotionState, 1000);";
     html += "}";
-    html += "updateMotionState();"; // Start the updates
+    html += "updateMotionState();";
     html += "</script>";
 
-    html += "<div class='button-container'>";
-    html += "<button class='button' onclick=\"sendRequest('/reboot')\">Reboot</button>";
-    html += "<button class='button' onclick=\"sendRequest('/update')\">Check for Update</button>";
-    html += "<button class='button' onclick=\"sendRequest('/apmode')\">Force AP Mode</button>";
-    html += "</div>";
-
-    html += "<div class='schedule' style='color: DarkGrey; text-align: center;'>";
-    html += "<h3>LED Schedule</h3>";
-    html += "<div style='display: inline-block; text-align: left;'>";
-    html += "  <div>Morning ON: " + String(morningOnHour) + ":" + String(morningOnMinute < 10 ? "0" : "") + String(morningOnMinute) + "</div>";
-    html += "  <div>Morning OFF: " + String(morningOffHour) + ":" + String(morningOffMinute < 10 ? "0" : "") + String(morningOffMinute) + "</div>";
-    html += "  <div>Sunset Time: " + String(getSunsetHour()) + ":00</div>";
-    html += "  <div>Evening OFF: " + String(eveningOffHour) + ":" + String(eveningOffMinute < 10 ? "0" : "") + String(eveningOffMinute) + "</div>";
-    html += "</div>";
-    html += "</div>";
-
-    html += "<div class='schedule' style='color: DarkGrey; text-align: center;'>";
-    html += "<h3>WiFi Configuration</h3>";
-    html += "<div class='wifi-container' style='display: flex; justify-content: center;'>";
-    html += "  <form method='post' action='/setwifi' class='wifi-form' style='display: flex; flex-direction: column; align-items: center;'>";
-    html += "    <label style='display: flex; justify-content: space-between; width: 200px;'>SSID: <input type='text' name='ssid' style='flex-grow: 1;'></label>";
-    html += "    <label style='display: flex; justify-content: space-between; width: 200px; margin-top: 5px;'>Password: <input type='password' name='password' style='flex-grow: 1;'></label>";
-    html += "    <input type='submit' value='Save' class='button' style='margin-top: 10px; width: 100px; height: 40px; font-size: 14px;'>";
-    html += "  </form>";
-    html += "</div>";
-    html += "</div>";
-
-
-    html += "<script>";
-    html += "function sendRequest(url) {";
-    html += "  var xhr = new XMLHttpRequest();";
-    html += "  xhr.open('GET', url, true);";
-    html += "  xhr.onload = function() {";
-    html += "    if (xhr.status == 200) {";
-    html += "      if (url.includes('led1')) {";
-    html += "        document.getElementById('ledState').innerText = url.includes('on') ? 'ON' : 'OFF';";
-    html += "        document.getElementById('ledState').style.color = url.includes('on') ? 'green' : 'red';";
-    html += "      }";
-    html += "    }";
-    html += "  };";
-    html += "  xhr.send();";
-    html += "}";
-    html += "</script>";
     html += "</body></html>";
-
     return html;
 }
 
